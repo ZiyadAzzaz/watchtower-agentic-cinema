@@ -37,7 +37,7 @@ credentials were not supplied.
 | Google runtime foundation | Complete | Five required APIs enabled; dedicated Vertex AI runtime identity created |
 | ClickHouse Cloud | Blocked | Account/service credentials not present |
 | Cloud Run URL | Blocked | Depends on ClickHouse Cloud and private-to-public release verification |
-| Public GitHub repository | Blocked | Saved GitHub authentication is invalid; public release requires approval |
+| GitHub repository | Private and pushed | `ZiyadAzzaz/watchtower-agentic-cinema`; public release requires approval |
 | Devpost/video | Prepared | Copy and three-minute runbook ready; recording/submission remains a human action |
 
 ## What was built
@@ -85,8 +85,8 @@ credentials were not supplied.
    unique test scope per run, proving behavior without deleting shared local data.
 5. **Local Docker mutation endpoints saw a bridge address, not loopback.** The local stack now uses
    an explicit demo operator token while remaining bound only to `127.0.0.1`.
-6. **GitHub CLI credentials are invalid.** No repository was created or partially published. The
-   owner must re-authenticate before the public release checkpoint.
+6. **GitHub CLI credentials were invalid.** Device re-authentication succeeded. The verified `main`
+   branch is backed up in a new private repository; visibility remains gated for release review.
 7. **No ClickHouse Cloud credentials are available.** Local self-hosted ClickHouse proves the partner
    runtime path, but the hosted submission still needs a persistent Cloud service.
 
@@ -113,10 +113,9 @@ checkpoints.
    workspace agent.
 2. Create/redeem the ClickHouse Cloud hackathon account and provide the TLS host plus two scoped
    credentials—never a personal payment method.
-3. Re-authenticate GitHub CLI with the intended account.
-4. Approve the private Cloud Run deployment after credentials exist; verify it privately.
-5. Approve public repository and service access only after the private release gate passes.
-6. Record the three-minute demo, upload it publicly, and complete Devpost before the official
+3. Approve the private Cloud Run deployment after credentials exist; verify it privately.
+4. Approve public repository and service access only after the private release gate passes.
+5. Record the three-minute demo, upload it publicly, and complete Devpost before the official
    September 9 deadline.
 
 ## Release plan
