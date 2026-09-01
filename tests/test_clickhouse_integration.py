@@ -12,6 +12,7 @@ from watchtower.runtime import WatchtowerRuntime
 
 def local_settings() -> Settings:
     return Settings(
+        _env_file=None,
         watchtower_env="test",
         watchtower_bootstrap_schema=False,
         clickhouse_host="127.0.0.1",

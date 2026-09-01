@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -37,6 +38,11 @@ class AgentPipeline:
     def __init__(self, settings: Settings, mcp: QueryExecutor):
         self.settings = settings
         self.mcp = mcp
+        # ADK/Google Gen AI discover Vertex configuration through the process
+        # environment. Override any unrelated local gcloud default explicitly.
+        os.environ["GOOGLE_CLOUD_PROJECT"] = settings.google_cloud_project
+        os.environ["GOOGLE_CLOUD_LOCATION"] = settings.google_cloud_location
+        os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = str(settings.google_genai_use_vertexai).lower()
 
     async def run(
         self,

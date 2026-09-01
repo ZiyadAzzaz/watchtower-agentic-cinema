@@ -64,7 +64,7 @@ async def test_full_runtime_creates_pending_human_decision() -> None:
     ]
     repository = MemoryRepository()
     runtime = WatchtowerRuntime(
-        Settings(watchtower_env="test"),
+        Settings(watchtower_env="test", _env_file=None),
         repository,
         StaticQueryExecutor([detection_rows, root_rows]),
         agents=StubAgents(),
@@ -102,7 +102,7 @@ async def test_runtime_suppresses_duplicate_open_incident() -> None:
     root = [{"cdn_node": "me-edge-01", "views": 20}]
     repository = MemoryRepository()
     runtime = WatchtowerRuntime(
-        Settings(watchtower_env="test"),
+        Settings(watchtower_env="test", _env_file=None),
         repository,
         StaticQueryExecutor([[row], root, [row]]),
         agents=StubAgents(),

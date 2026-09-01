@@ -69,6 +69,23 @@ docker compose up -d clickhouse
 
 Copy `.env.example` to `.env` and use the local credentials from `docker-compose.yml`.
 
+### ClickHouse Cloud bootstrap
+
+After placing a rotated `default` credential and the TLS Cloud endpoint in the Git-ignored `.env`,
+run the one-time bootstrap:
+
+```powershell
+conda activate watch-tower
+python scripts/bootstrap_clickhouse_cloud.py
+python scripts/verify_clickhouse_cloud.py
+python scripts/verify_vertex_gemini.py
+```
+
+The bootstrap creates the schema, inserts the fictional catalog, generates independent
+`watchtower_app` and `watchtower_mcp` credentials, limits their grants, and replaces the temporary
+admin credential in `.env`. It never prints a secret. The verification scripts use unique synthetic
+scopes and do not delete Cloud data.
+
 ## Verification
 
 Fast quality gate (no external services):
@@ -91,6 +108,10 @@ The integration test proves:
 2. detection and root-cause queries run through official `mcp-clickhouse`;
 3. the planted CDN anomaly becomes a pending incident; and
 4. a destructive query is rejected.
+
+The two Cloud verification scripts additionally prove verified TLS, scoped Cloud identities, real
+Vertex AI Gemini execution in `watchtower-507216`, all four ADK stages, in-agent MCP evidence calls,
+and human-gated structured output.
 
 ## Configuration
 

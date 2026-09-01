@@ -7,7 +7,9 @@ from watchtower.models import Anomaly, AnomalyKind
 
 
 def test_adk_pipeline_has_four_specialized_agents() -> None:
-    pipeline = AgentPipeline(Settings(watchtower_env="test"), StaticQueryExecutor([]))
+    pipeline = AgentPipeline(
+        Settings(watchtower_env="test", _env_file=None), StaticQueryExecutor([])
+    )
     root = pipeline._build_pipeline(
         Anomaly(
             kind=AnomalyKind.BUFFER_SPIKE,

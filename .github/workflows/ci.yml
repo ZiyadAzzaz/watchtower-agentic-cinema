@@ -18,8 +18,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -e '.[dev]'
-      - run: ruff format --check watchtower tests
-      - run: ruff check watchtower tests
+      - run: ruff format --check watchtower tests scripts
+      - run: ruff check watchtower tests scripts
       - run: python -m pytest --cov=watchtower --cov-report=term-missing
       - run: docker compose up -d --wait clickhouse
       - run: python -m pytest tests/test_clickhouse_integration.py -m integration -vv

@@ -9,7 +9,7 @@ from watchtower.runtime import WatchtowerRuntime
 
 def make_client() -> TestClient:
     runtime = WatchtowerRuntime(
-        Settings(watchtower_env="test"),
+        Settings(watchtower_env="test", _env_file=None),
         MemoryRepository(),
         StaticQueryExecutor([]),
     )
