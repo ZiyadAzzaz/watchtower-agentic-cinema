@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="WatchTower streaming incident intelligence dashboard">
+  <title>WatchTower · Streaming Operations</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="WatchTower home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><b>WATCHTOWER</b><small>STREAMING OPERATIONS</small></span>
+      </a>
+      <div class="top-actions">
+        <span class="live-status"><i></i><span id="systemState">Connecting</span></span>
+        <button class="icon-button" id="settingsButton" aria-label="Open demo access settings">⌘</button>
+        <button class="primary-button" id="openInjectButton"><span>＋</span> Simulate incident</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow">AUTONOMOUS INCIDENT INTELLIGENCE</div>
+          <h1>See the failure.<br><em>Know the impact.</em></h1>
+          <p>Four specialized agents turn live delivery telemetry into a quantified, evidence-led action—then stop for a human decision.</p>
+          <div class="trust-row">
+            <span><i class="dot cyan"></i> ClickHouse live</span>
+            <span><i class="dot violet"></i> Gemini reasoning</span>
+            <span><i class="dot amber"></i> Human governed</span>
+          </div>
+        </div>
+        <div class="agent-rail" aria-label="Four agent workflow">
+          <div class="rail-head"><span>AGENT PIPELINE</span><b>Event-gated</b></div>
+          <div class="agent-step active"><span>01</span><div><b>Detector</b><small>Signal vs. rolling baseline</small></div><i>READY</i></div>
+          <div class="rail-line"></div>
+          <div class="agent-step"><span>02</span><div><b>Root-Cause</b><small>CDN and regional evidence</small></div></div>
+          <div class="rail-line"></div>
+          <div class="agent-step"><span>03</span><div><b>Impact Estimator</b><small>Viewer-hours and revenue</small></div></div>
+          <div class="rail-line"></div>
+          <div class="agent-step"><span>04</span><div><b>Action Drafter</b><small>Reversible response brief</small></div></div>
+          <div class="human-gate"><span>◆</span><div><b>Human approval required</b><small>No action executes autonomously</small></div></div>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Live telemetry summary">
+        <article><span>LIVE VIEWS · 5M</span><strong id="viewsMetric">—</strong><small id="eventsMetric">Awaiting stream</small></article>
+        <article><span>PLAYBACK STARTS</span><strong id="startsMetric">—</strong><small>Across 5 operating regions</small></article>
+        <article><span>BUFFER RATE</span><strong id="bufferMetric">—</strong><small id="bufferHealth">Baseline healthy</small></article>
+        <article><span>AD IMPRESSIONS</span><strong id="adsMetric">—</strong><small>Fictional catalog telemetry</small></article>
+      </section>
+
+      <section class="operations-grid">
+        <article class="panel signal-panel">
+          <div class="panel-head">
+            <div><span class="section-label">LIVE SIGNAL</span><h2>Audience activity</h2></div>
+            <div class="legend"><span><i class="cyan-line"></i> Views</span><span id="lastEvent">No event yet</span></div>
+          </div>
+          <div class="chart-wrap"><svg id="signalChart" viewBox="0 0 720 240" preserveAspectRatio="none" role="img" aria-label="Live audience activity chart"></svg></div>
+          <div class="chart-axis"><span>30m ago</span><span>20m</span><span>10m</span><span>Now</span></div>
+        </article>
+
+        <aside class="panel pulse-panel">
+          <div class="panel-head"><div><span class="section-label">SYSTEM PULSE</span><h2>Guardrails</h2></div></div>
+          <dl>
+            <div><dt>Data plane</dt><dd><i class="ok"></i> ClickHouse</dd></div>
+            <div><dt>Agent access</dt><dd>Read-only MCP</dd></div>
+            <div><dt>AI provider</dt><dd>Vertex AI</dd></div>
+            <div><dt>Action policy</dt><dd class="accent">Human only</dd></div>
+          </dl>
+          <div class="pulse-note"><span>SHIELD</span><p>Bounded queries, least-privilege identities, and no execution tools in the action agent.</p></div>
+        </aside>
+      </section>
+
+      <section class="incidents-section">
+        <div class="section-head">
+          <div><span class="section-label">INCIDENT QUEUE</span><h2>Decisions, not alerts</h2></div>
+          <div class="queue-count"><b id="pendingCount">0</b> awaiting review</div>
+        </div>
+        <div id="incidentList" class="incident-list">
+          <div class="empty-state"><div class="empty-radar"><i></i></div><h3>All signals within range</h3><p>WatchTower is comparing live delivery telemetry against rolling baselines.</p></div>
+        </div>
+      </section>
+
+      <section class="catalog-section">
+        <div class="section-head"><div><span class="section-label">MONITORED CATALOG</span><h2>Original fictional titles</h2></div><p>No third-party media data or artwork.</p></div>
+        <div id="catalogGrid" class="catalog-grid"></div>
+      </section>
+    </main>
+
+    <footer><span>WATCHTOWER · CLICKHOUSE TRACK</span><span>Gemini + Google ADK · Human-governed by design</span></footer>
+  </div>
+
+  <dialog id="injectDialog">
+    <form method="dialog" class="dialog-card" id="injectForm">
+      <div class="dialog-head"><div><span class="section-label">CONTROLLED DEMO</span><h2>Simulate an incident</h2></div><button value="cancel" aria-label="Close">×</button></div>
+      <p>Inject a labeled synthetic signal. WatchTower will detect it through the same live ClickHouse path used for normal telemetry.</p>
+      <label>Fictional title<select id="injectTitle" required></select></label>
+      <label>Region<select id="injectRegion" required><option>North America</option><option>Europe</option><option>MENA</option><option>South Asia</option><option>Latin America</option></select></label>
+      <fieldset><legend>Signal</legend><label class="radio-card"><input type="radio" name="kind" value="buffer_spike" checked><span><b>Buffer spike</b><small>Degraded CDN delivery</small></span></label><label class="radio-card"><input type="radio" name="kind" value="view_drop"><span><b>View drop</b><small>Regional playback collapse</small></span></label><label class="radio-card"><input type="radio" name="kind" value="ad_failure"><span><b>Ad failure</b><small>Delivery error surge</small></span></label></fieldset>
+      <div class="dialog-actions"><button value="cancel" class="ghost-button">Cancel</button><button type="submit" value="default" class="primary-button">Arm simulation</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-card compact" id="settingsForm">
+      <div class="dialog-head"><div><span class="section-label">DEMO ACCESS</span><h2>Operator key</h2></div><button value="cancel" aria-label="Close">×</button></div>
+      <p>State-changing controls require the deployment's operator key. It stays in this browser only.</p>
+      <label>Operator key<input id="adminToken" type="password" autocomplete="off" placeholder="Paste operator key"></label>
+      <div class="dialog-actions"><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save locally</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="incidentDialog"><div class="dialog-card incident-detail" id="incidentDetail"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8-alpine
+    container_name: watchtower-clickhouse
+    environment:
+      CLICKHOUSE_DB: watchtower
+      CLICKHOUSE_USER: watchtower_bootstrap
+      CLICKHOUSE_PASSWORD: local-bootstrap-only
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "127.0.0.1:8123:8123"
+    volumes:
+      - watchtower_clickhouse_data:/var/lib/clickhouse
+      - ./infra/clickhouse/init.sql:/docker-entrypoint-initdb.d/001-watchtower.sql:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8123/ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: watchtower-app
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      WATCHTOWER_ENV: development
+      WATCHTOWER_BOOTSTRAP_SCHEMA: "false"
+      WATCHTOWER_ADMIN_TOKEN: local-demo-only
+      GOOGLE_CLOUD_PROJECT: watchtower-507216
+      GOOGLE_CLOUD_LOCATION: us-central1
+      GOOGLE_GENAI_USE_VERTEXAI: "true"
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_DATABASE: watchtower
+      CLICKHOUSE_USER: watchtower_app
+      CLICKHOUSE_PASSWORD: local-app-only
+      CLICKHOUSE_MCP_USER: watchtower_mcp
+      CLICKHOUSE_MCP_PASSWORD: local-mcp-only
+      CLICKHOUSE_SECURE: "false"
+      CLICKHOUSE_VERIFY: "false"
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  watchtower_clickhouse_data:

@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=78"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "watchtower-agentic-cinema"
+version = "0.1.0"
+description = "Human-governed streaming incident intelligence built with Google ADK, Gemini, and ClickHouse MCP."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = "MIT"
+authors = [{name = "Ziyad Azzaz"}]
+dependencies = [
+  "clickhouse-connect==1.7.2",
+  "fastapi==0.141.1",
+  "google-adk==2.8.0",
+  "google-cloud-secret-manager==2.24.0",
+  "mcp-clickhouse==0.4.1",
+  "pydantic-settings==2.10.1",
+  "structlog==25.4.0",
+  "uvicorn[standard]==0.35.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx==0.28.1",
+  "pytest==8.4.1",
+  "pytest-asyncio==1.1.0",
+  "pytest-cov==6.2.1",
+  "ruff==0.12.7",
+]
+
+[tool.setuptools.packages.find]
+include = ["watchtower*"]
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers --disable-warnings -m 'not integration'"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["integration: requires the local ClickHouse container"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["B008"]

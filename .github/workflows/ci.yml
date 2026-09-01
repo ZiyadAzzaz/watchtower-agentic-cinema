@@ -1,0 +1,27 @@
+name: quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff format --check watchtower tests
+      - run: ruff check watchtower tests
+      - run: python -m pytest --cov=watchtower --cov-report=term-missing
+      - run: docker compose up -d --wait clickhouse
+      - run: python -m pytest tests/test_clickhouse_integration.py -m integration -vv
+      - if: always()
+        run: docker compose logs clickhouse

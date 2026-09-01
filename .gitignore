@@ -1,0 +1,27 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+pytest-cache-files-*/
+.ruff_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+dist/
+build/
+.dist/
+.codex_tmp*/
+*.log
+
+# Internal build briefs are retained locally but are not part of the public product source.
+watchtower_agent_brief.md
+watchtower_full_spec.md
+watchtower_architecture.html

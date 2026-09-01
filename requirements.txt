@@ -1,0 +1,9 @@
+# Kept explicit for reproducible Cloud Run source builds.
+clickhouse-connect==1.7.2
+fastapi==0.141.1
+google-adk==2.8.0
+google-cloud-secret-manager==2.24.0
+mcp-clickhouse==0.4.1
+pydantic-settings==2.10.1
+structlog==25.4.0
+uvicorn[standard]==0.35.0
