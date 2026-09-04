@@ -16,12 +16,71 @@ async function api(path, options = {}) {
   return body;
 }
 
+const STAGE_VERBS = [
+  "Confirming the signal against the rolling baseline…",
+  "Querying CDN and regional evidence through MCP…",
+  "Converting the fault into viewer-hours and dollars…",
+  "Drafting one reversible action for your decision…",
+];
+
+function paintPipeline(activity) {
+  const steps = [...document.querySelectorAll(".agent-step")];
+  const running = activity && activity.state === "investigating";
+  const index = activity ? activity.stage_index : -1;
+
+  steps.forEach((step, i) => {
+    const badge = step.querySelector("i");
+    step.classList.remove("active", "done", "working");
+    if (!running) {
+      if (i === 0) { step.classList.add("active"); badge.textContent = "READY"; }
+      else badge.textContent = "";
+      return;
+    }
+    if (i <= index) { step.classList.add("done"); badge.textContent = "DONE"; }
+    else if (i === index + 1) { step.classList.add("working"); badge.textContent = "RUNNING"; }
+    else badge.textContent = "";
+  });
+
+  const label = el("railState");
+  const note = el("railNote");
+  if (!label || !note) return;
+  if (running) {
+    label.textContent = "Investigating";
+    label.className = "rail-live";
+    const next = Math.min(index + 1, STAGE_VERBS.length - 1);
+    note.textContent = `${activity.title_name} · ${activity.region} — ${STAGE_VERBS[next]}`;
+  } else {
+    label.textContent = "Event-gated";
+    label.className = "";
+    note.textContent = "Gemini runs only when a deterministic rule fires, never on every tick.";
+  }
+}
+
+async function pollActivity() {
+  try { paintPipeline(await api("/api/activity")); } catch { /* the dashboard poll reports errors */ }
+}
+
+async function watchPipeline(durationMs = 120000) {
+  const startedAt = Date.now();
+  let sawRun = false;
+  while (Date.now() - startedAt < durationMs) {
+    let activity;
+    try { activity = await api("/api/activity"); } catch { break; }
+    paintPipeline(activity);
+    if (activity.state === "investigating") sawRun = true;
+    else if (sawRun) break;
+    await new Promise(r => setTimeout(r, 700));
+  }
+  paintPipeline(null);
+}
+
 async function refresh() {
   if (state.busy) return;
   state.busy = true;
   try {
     state.data = await api("/api/dashboard");
     render();
+    pollActivity();
     el("systemState").textContent = "Operational";
   } catch (error) {
     el("systemState").textContent = "Telemetry unavailable";
@@ -105,9 +164,14 @@ async function inject(event) {
   const payload = { kind, title_id: el("injectTitle").value, region: el("injectRegion").value, duration_cycles: 4, magnitude: .8 };
   try {
     await api("/api/admin/inject", { method: "POST", headers: headers(), body: JSON.stringify(payload) });
-    el("injectDialog").close(); toast("Synthetic incident armed. Agents are watching the next live cycles.");
+    el("injectDialog").close();
+    toast("Anomaly armed. Four agents are investigating — watch the pipeline.");
+    // Poll the pipeline while the ticks run so each agent lights up as it finishes.
+    const watching = watchPipeline();
     for (let i = 0; i < 3; i++) { await api("/api/admin/tick", { method: "POST", headers: headers(), body: "{}" }); }
+    await watching;
     await refresh();
+    toast("Investigation complete. An incident is waiting for your decision.");
   } catch (error) { handleAdminError(error); }
 }
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="WatchTower streaming incident intelligence dashboard">
-  <title>WatchTower · Streaming Operations</title>
+  <meta name="description" content="WatchTower — release-night delivery intelligence for the crew that ships a title">
+  <title>WatchTower · Release-Night Intelligence</title>
   <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
@@ -24,9 +24,9 @@
     <main>
       <section class="hero-grid">
         <div class="hero-copy">
-          <div class="eyebrow">AUTONOMOUS INCIDENT INTELLIGENCE</div>
-          <h1>See the failure.<br><em>Know the impact.</em></h1>
-          <p>Four specialized agents turn live delivery telemetry into a quantified, evidence-led action—then stop for a human decision.</p>
+          <div class="eyebrow">RELEASE-NIGHT INTELLIGENCE</div>
+          <h1>Your title is live.<br><em>Can anyone watch it?</em></h1>
+          <p>A title can be years in the making and still fail in the ten minutes between a fan pressing play and giving up. Four agents find out who cannot watch, why, and what it costs&mdash;then stop for a human decision.</p>
           <div class="trust-row">
             <span><i class="dot cyan"></i> ClickHouse live</span>
             <span><i class="dot violet"></i> Gemini reasoning</span>
@@ -34,15 +34,16 @@
           </div>
         </div>
         <div class="agent-rail" aria-label="Four agent workflow">
-          <div class="rail-head"><span>AGENT PIPELINE</span><b>Event-gated</b></div>
-          <div class="agent-step active"><span>01</span><div><b>Detector</b><small>Signal vs. rolling baseline</small></div><i>READY</i></div>
+          <div class="rail-head"><span>AGENT PIPELINE</span><b id="railState">Event-gated</b></div>
+          <p class="rail-note" id="railNote">Gemini runs only when a deterministic rule fires, never on every tick.</p>
+          <div class="agent-step" data-stage="0"><span>01</span><div><b>Detector</b><small>Confirms the signal is real against a rolling baseline</small></div><i></i></div>
           <div class="rail-line"></div>
-          <div class="agent-step"><span>02</span><div><b>Root-Cause</b><small>CDN and regional evidence</small></div></div>
+          <div class="agent-step" data-stage="1"><span>02</span><div><b>Root-Cause</b><small>Queries CDN and regional evidence through read-only MCP</small></div><i></i></div>
           <div class="rail-line"></div>
-          <div class="agent-step"><span>03</span><div><b>Impact Estimator</b><small>Viewer-hours and revenue</small></div></div>
+          <div class="agent-step" data-stage="2"><span>03</span><div><b>Impact Estimator</b><small>Converts the fault into viewer-hours and dollars</small></div><i></i></div>
           <div class="rail-line"></div>
-          <div class="agent-step"><span>04</span><div><b>Action Drafter</b><small>Reversible response brief</small></div></div>
-          <div class="human-gate"><span>◆</span><div><b>Human approval required</b><small>No action executes autonomously</small></div></div>
+          <div class="agent-step" data-stage="3"><span>04</span><div><b>Action Drafter</b><small>Writes one reversible action — it holds no execution tool</small></div><i></i></div>
+          <div class="human-gate"><span>◆</span><div><b>Human approval required</b><small>The pipeline stops here. A person decides; nothing runs on its own.</small></div></div>
         </div>
       </section>
 

@@ -14,6 +14,7 @@ from watchtower.generator import SyntheticEventGenerator
 from watchtower.impact import ImpactEstimator
 from watchtower.mcp_client import QueryExecutor
 from watchtower.models import (
+    Anomaly,
     AnomalyInjectionRequest,
     Incident,
     IncidentStatus,
@@ -57,6 +58,19 @@ class WatchtowerRuntime:
         self.impact_estimator = ImpactEstimator()
         self.agents = agents or AgentPipeline(settings, mcp)
         self.last_tick_at: datetime | None = None
+        # What the pipeline is doing right now, so the dashboard can show the
+        # four agents working instead of freezing for the length of four model
+        # calls. Read-only and safe to expose publicly.
+        self.activity: dict[str, Any] = {
+            "state": "idle",
+            "title_name": None,
+            "region": None,
+            "stage_index": -1,
+            "stage_name": None,
+            "stages": list(AgentPipeline.STAGE_NAMES),
+            "started_at": None,
+            "updated_at": None,
+        }
         self._last_tick_clock = 0.0
         self._lock = asyncio.Lock()
         self.used_gemini = False
@@ -139,7 +153,15 @@ class WatchtowerRuntime:
             )
             root = self.root_analyzer.analyze(anomaly, root_rows)
             impact = self.impact_estimator.estimate(anomaly, snapshot)
-            agent_result = await self.agents.run(anomaly, root, impact)
+            self._begin_activity(anomaly)
+            try:
+                agent_result = await self.agents.run(
+                    anomaly, root, impact, on_stage=self._record_stage
+                )
+            except BaseException:
+                self._end_activity("failed")
+                raise
+            self._end_activity("complete")
             self.used_gemini = self.used_gemini or agent_result.used_gemini
             incident = Incident(
                 anomaly=anomaly,
@@ -152,6 +174,33 @@ class WatchtowerRuntime:
             await asyncio.to_thread(self.repository.save_incident, incident)
             incidents.append(incident)
         return incidents
+
+    def _begin_activity(self, anomaly: Anomaly) -> None:
+        now = datetime.now(UTC).isoformat()
+        self.activity.update(
+            {
+                "state": "investigating",
+                "title_name": anomaly.title_name,
+                "region": anomaly.region,
+                "kind": anomaly.kind.value,
+                "stage_index": -1,
+                "stage_name": None,
+                "started_at": now,
+                "updated_at": now,
+            }
+        )
+
+    def _record_stage(self, index: int, name: str) -> None:
+        self.activity.update(
+            {
+                "stage_index": index,
+                "stage_name": name,
+                "updated_at": datetime.now(UTC).isoformat(),
+            }
+        )
+
+    def _end_activity(self, state: str) -> None:
+        self.activity.update({"state": state, "updated_at": datetime.now(UTC).isoformat()})
 
     async def inject(self, request: AnomalyInjectionRequest) -> None:
         if request.title_id not in TITLE_BY_ID:

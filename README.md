@@ -1,9 +1,15 @@
 # WatchTower
 
-WatchTower is human-governed incident intelligence for streaming operations. It watches live,
-synthetic delivery telemetry in ClickHouse, detects material deviations, investigates the likely
-cause, quantifies viewer and revenue impact, and drafts a reversible response for a person to
-approve or dismiss.
+**A title can be years in the making and still fail in its final ten minutes** — the ten minutes
+between a fan pressing play and giving up.
+
+WatchTower is release-night intelligence for the crew that ships a title. It watches live delivery
+telemetry in ClickHouse, finds out who cannot watch the premiere and why, prices the damage in lost
+viewer-hours and revenue, and drafts one reversible response for a person to approve or dismiss.
+
+Everything upstream in this industry is deliberate: a director approves a cut, a colorist approves a
+grade. WatchTower makes the last link work the same way — evidence assembled by machines in seconds,
+the decision still made by the person accountable for it.
 
 Built from scratch for **Agentic Cinema: The Blockbuster Hackathon — ClickHouse Track**.
 

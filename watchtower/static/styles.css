@@ -80,3 +80,12 @@ dialog { width: min(560px, calc(100% - 30px)); padding: 0; border: 0; border-rad
 .judge-note p { font-size: 11px; color: var(--muted); margin: 0 0 8px; line-height: 1.5; }
 .judge-note code { font: 11px ui-monospace, monospace; color: var(--cyan); background: rgba(34,211,197,.1); padding: 2px 6px; border-radius: 4px; }
 .judge-note .judge-note-limit { font-size: 10px; opacity: .8; }
+.rail-note { font-size: 10px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; min-height: 30px; }
+.rail-live { color: var(--amber) !important; }
+.rail-live::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); margin-right: 6px; vertical-align: middle; animation: railPulse 1s ease-in-out infinite; }
+@keyframes railPulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.agent-step.done { border-color: rgba(34,211,197,.4); }
+.agent-step.done i { color: var(--cyan); }
+.agent-step.working { border-color: var(--amber); background: rgba(245,180,80,.06); }
+.agent-step.working i { color: var(--amber); animation: railPulse 1s ease-in-out infinite; }
+.agent-step.working span { color: var(--amber); }

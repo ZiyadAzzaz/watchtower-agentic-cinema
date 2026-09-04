@@ -9,8 +9,9 @@ WatchTower
 
 ## Tagline / one-line description
 
-Human-governed multi-agent incident intelligence that detects streaming failures in ClickHouse,
-quantifies business impact, and drafts a reversible response for approval.
+Release-night intelligence for the people who ship a title: four Gemini agents watch delivery
+telemetry in ClickHouse, find out who cannot watch your premiere and why, price the damage in lost
+viewer-hours, and stop for a human to decide.
 
 ## Links
 
@@ -18,13 +19,25 @@ quantifies business impact, and drafts a reversible response for approval.
 - Source code: <https://github.com/ZiyadAzzaz/watchtower-agentic-cinema>
 - Demo video: `[PUBLIC_VIDEO_URL]`
 
+## Who it is for
+
+The distribution and release-operations crew at a studio or streamer — the people on the launch
+bridge the night a title goes live. They are the last link in the entertainment value chain, and the
+only one measured in whether the audience actually got to watch. When a premiere lands badly in one
+region, they are the team that has to know within minutes, not at the next-day post-mortem.
+
+Their stakeholder is the fan. A buffering premiere is a fan who leaves.
+
 ## Inspiration
 
-Streaming platforms generate enormous volumes of delivery telemetry, but a graph changing color is
-not yet an operational decision. Teams still lose viewer-hours and revenue while someone identifies
-the affected scope, correlates infrastructure evidence, estimates business impact, and decides on a
-safe response. We built WatchTower to compress that workflow without handing production control to
-an AI model.
+A film or series can be years in the making and still fail in its final ten minutes — the ten minutes
+between a viewer pressing play and giving up. On release night the people responsible for that
+moment are watching dashboards that go red without saying why, how many fans are affected, or what
+it costs. A graph changing color is not yet a decision.
+
+Everything upstream in this industry is deliberate: a director approves a cut, a colorist approves a
+grade, a producer approves a budget. We wanted the last link in the chain to work the same way —
+evidence assembled fast by machines, the decision still made by a person who is accountable for it.
 
 Our design principle is **evidence first, agents second, human decision always**. Deterministic code
 decides whether a material anomaly exists and calculates its impact. Gemini receives bounded,

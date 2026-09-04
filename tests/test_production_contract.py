@@ -35,7 +35,9 @@ def production_settings() -> Settings:
 
 
 class StubAgents:
-    async def run(self, anomaly, root_cause, impact):  # pragma: no cover - unused here
+    async def run(
+        self, anomaly, root_cause, impact, on_stage=None
+    ):  # pragma: no cover - unused here
         raise AssertionError("agents must not run in these tests")
 
 
@@ -224,3 +226,95 @@ def test_each_thread_gets_its_own_clickhouse_client(monkeypatch) -> None:
     assert len(seen) == threads_count, "each thread should have recorded a client"
     assert len({id(c) for c in seen}) == threads_count, "clients must not be shared across threads"
     assert len(created) == threads_count, "exactly one connection per thread"
+
+
+def test_activity_endpoint_reports_pipeline_progress_and_needs_no_key() -> None:
+    """Judges watch the four agents work; the feed must be public and read-only."""
+    runtime = WatchtowerRuntime(
+        Settings(watchtower_env="test", _env_file=None),
+        MemoryRepository(),
+        StaticQueryExecutor([]),
+    )
+    with TestClient(create_app(runtime)) as client:
+        idle = client.get("/api/activity")
+        assert idle.status_code == 200
+        body = idle.json()
+        assert body["state"] == "idle"
+        assert body["stages"] == [
+            "Detector",
+            "Root-Cause",
+            "Impact Estimator",
+            "Action Drafter",
+        ]
+        assert body["stage_index"] == -1
+
+
+def test_stage_callbacks_advance_the_reported_progress() -> None:
+    runtime = WatchtowerRuntime(
+        Settings(watchtower_env="test", _env_file=None),
+        MemoryRepository(),
+        StaticQueryExecutor([]),
+    )
+    from watchtower.models import Anomaly, AnomalyKind
+
+    anomaly = Anomaly(
+        kind=AnomalyKind.BUFFER_SPIKE,
+        title_id="aurora-drift",
+        title_name="Aurora Drift",
+        region="MENA",
+        observed=0.3,
+        baseline=0.02,
+        deviation_percent=1400.0,
+        confidence=0.99,
+    )
+    runtime._begin_activity(anomaly)
+    assert runtime.activity["state"] == "investigating"
+    assert runtime.activity["title_name"] == "Aurora Drift"
+
+    for index, name in enumerate(["Detector", "Root-Cause", "Impact Estimator", "Action Drafter"]):
+        runtime._record_stage(index, name)
+        assert runtime.activity["stage_index"] == index
+        assert runtime.activity["stage_name"] == name
+
+    runtime._end_activity("complete")
+    assert runtime.activity["state"] == "complete"
+
+
+@pytest.mark.parametrize("path", ["/", "/assets/app.js", "/assets/styles.css"])
+def test_the_shell_and_assets_must_revalidate(path: str) -> None:
+    """A returning visitor must not run stale JavaScript against a new API."""
+    runtime = WatchtowerRuntime(
+        Settings(watchtower_env="test", _env_file=None),
+        MemoryRepository(),
+        StaticQueryExecutor([]),
+    )
+    with TestClient(create_app(runtime)) as client:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert "no-cache" in response.headers.get("cache-control", "")
+
+
+def test_asset_urls_are_content_fingerprinted() -> None:
+    """A returning visitor must never run a previous build's JavaScript."""
+    from watchtower.api import _index_html
+
+    _index_html.cache_clear()
+    html = _index_html()
+    assert "/assets/app.js?v=" in html
+    assert "/assets/styles.css?v=" in html
+    # The same content yields the same URL, so caching still works within a build.
+    _index_html.cache_clear()
+    assert _index_html() == html
+
+
+def test_the_fingerprint_changes_when_an_asset_changes(tmp_path, monkeypatch) -> None:
+    import watchtower.api as api_module
+
+    first = api_module._asset_fingerprint()
+    original = (api_module.STATIC_DIR / "app.js").read_bytes()
+    try:
+        (api_module.STATIC_DIR / "app.js").write_bytes(original + b"\n// changed\n")
+        assert api_module._asset_fingerprint() != first
+    finally:
+        (api_module.STATIC_DIR / "app.js").write_bytes(original)
+    assert api_module._asset_fingerprint() == first

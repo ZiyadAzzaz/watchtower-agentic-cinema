@@ -11,7 +11,7 @@ from watchtower.runtime import WatchtowerRuntime
 
 
 class StubAgents:
-    async def run(self, anomaly, root_cause, impact) -> AgentPipelineResult:
+    async def run(self, anomaly, root_cause, impact, on_stage=None) -> AgentPipelineResult:
         now = datetime.now(UTC)
         return AgentPipelineResult(
             draft=ActionDraft(

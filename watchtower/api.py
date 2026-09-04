@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import hmac
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from functools import lru_cache
 from pathlib import Path
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from watchtower.config import Settings, get_settings
@@ -26,6 +28,31 @@ from watchtower.runtime import WatchtowerRuntime
 
 STATIC_DIR = Path(__file__).parent / "static"
 LOGGER = logging.getLogger(__name__)
+
+
+def _asset_fingerprint() -> str:
+    """Short digest of the front-end assets.
+
+    A browser that cached an old bundle can keep serving it even after the
+    response headers change, which leaves a returning visitor running last
+    week's JavaScript. Appending a content digest gives each build its own URL,
+    which no cache can confuse with the previous one.
+    """
+    digest = hashlib.sha256()
+    for name in sorted(("app.js", "styles.css")):
+        path = STATIC_DIR / name
+        if path.exists():
+            digest.update(path.read_bytes())
+    return digest.hexdigest()[:12]
+
+
+@lru_cache(maxsize=1)
+def _index_html() -> str:
+    version = _asset_fingerprint()
+    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    for name in ("app.js", "styles.css"):
+        html = html.replace(f"/assets/{name}", f"/assets/{name}?v={version}")
+    return html
 
 
 def _token_matches(configured: str, presented: str | None) -> bool:
@@ -130,6 +157,12 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        # The dashboard is redeployed often. Without revalidation a returning
+        # visitor can run last week's JavaScript against this week's API, so
+        # the shell and its assets must be checked against their ETag every
+        # time. Responses stay cheap because unchanged files return 304.
+        if request.url.path == "/" or request.url.path.startswith("/assets/"):
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
         return response
 
     def get_runtime(request: Request) -> WatchtowerRuntime:
@@ -197,8 +230,8 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
             )
 
     @app.get("/", include_in_schema=False)
-    async def index() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html")
+    async def index() -> HTMLResponse:
+        return HTMLResponse(_index_html())
 
     # Cloud Run's serverless frontend answers the exact path "/healthz" itself,
     # so the same handler is also published under a non-reserved path.
@@ -214,6 +247,11 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
     async def readiness(request: Request) -> dict[str, str]:
         active_runtime = get_runtime(request)
         return {"status": active_runtime.status().status}
+
+    @app.get("/api/activity")
+    async def activity(active_runtime: WatchtowerRuntime = Depends(get_runtime)) -> dict:
+        """What the agent pipeline is doing right now. Read-only and public."""
+        return active_runtime.activity
 
     @app.get("/api/dashboard")
     async def dashboard(active_runtime: WatchtowerRuntime = Depends(get_runtime)) -> dict:

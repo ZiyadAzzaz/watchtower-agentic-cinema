@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 from uuid import uuid4
 
 from google.adk.agents import LlmAgent, SequentialAgent
@@ -34,6 +35,7 @@ class AgentPipeline:
     """ADK multi-agent pipeline; all runtime AI calls route to Gemini on Vertex AI."""
 
     app_name = "watchtower_incident_intelligence"
+    STAGE_NAMES = ("Detector", "Root-Cause", "Impact Estimator", "Action Drafter")
 
     def __init__(self, settings: Settings, mcp: QueryExecutor):
         self.settings = settings
@@ -44,13 +46,30 @@ class AgentPipeline:
         os.environ["GOOGLE_CLOUD_LOCATION"] = settings.google_cloud_location
         os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = str(settings.google_genai_use_vertexai).lower()
 
+    STAGE_BY_AUTHOR: ClassVar[dict[str, int]] = {
+        "detector_agent": 0,
+        "root_cause_agent": 1,
+        "impact_estimator_agent": 2,
+        "action_drafter_agent": 3,
+    }
+
     async def run(
         self,
         anomaly: Anomaly,
         root_cause: RootCause,
         impact: ImpactEstimate,
+        on_stage: Callable[[int, str], None] | None = None,
     ) -> AgentPipelineResult:
+        """Run the four stages, reporting each one as it completes.
+
+        `on_stage` receives the zero-based stage index and its display name as
+        the orchestrator finishes it, so the dashboard can show the pipeline
+        working rather than freezing for the length of four model calls.
+        """
         if self.settings.watchtower_env == "test":
+            if on_stage is not None:
+                for index, name in enumerate(self.STAGE_NAMES):
+                    on_stage(index, name)
             return self._fallback(anomaly, root_cause, impact)
         started = time.perf_counter()
         pipeline = self._build_pipeline(anomaly)
@@ -91,6 +110,9 @@ class AgentPipeline:
                 new_message=message,
             ):
                 events.append(event)
+                stage = self.STAGE_BY_AUTHOR.get(getattr(event, "author", ""))
+                if stage is not None and on_stage is not None:
+                    on_stage(stage, self.STAGE_NAMES[stage])
             session = await session_service.get_session(
                 app_name=self.app_name,
                 user_id="watchtower-orchestrator",
