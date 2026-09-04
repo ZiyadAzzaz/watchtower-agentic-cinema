@@ -25,8 +25,9 @@ python -m venv .venv
 
 On Windows use `.venv\Scripts\python.exe` instead of `.venv/bin/python`.
 
-Expect **46 passed, 1 deselected**. The deselected test is the integration test in Level 3; it is
-excluded by default because it needs Docker.
+The audited release passes **81 tests**, with one integration test deselected by the default
+command. The deselected test is the integration test in Level 3; it is excluded by default because
+it needs Docker.
 
 ### What the suite covers
 

@@ -19,6 +19,7 @@ dist/
 build/
 .dist/
 .agent_tmp*/
+.codex_tmp_pytest*/
 *.log
 
 # Internal build briefs are retained locally but are not part of the public product source.

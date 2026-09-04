@@ -95,7 +95,8 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
             else None
         )
         # A published key is discoverable by anyone, so the burst limit is
-        # backed by a hard ceiling on a day's model spend.
+        # backed by a longer per-process window. Cloud billing alerts remain
+        # authoritative because an instance or revision restart resets it.
         app.state.demo_daily_limiter = (
             SlidingWindowLimiter(active_settings.watchtower_demo_daily_limit, 86400)
             if active_settings.watchtower_demo_token
@@ -228,10 +229,10 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail=(
-                    "The shared demo key has reached its daily ceiling on new "
-                    "investigations. This cap exists so a public key can never run up an "
-                    "unbounded model bill. Run WatchTower locally with docker compose for "
-                    "unlimited use, or use the deployment's own operator key."
+                    "The shared demo key has reached its per-instance 24-hour limit on new "
+                    "investigations. This safeguard reduces model-cost exposure from a public "
+                    "key. Run WatchTower locally with docker compose for unrestricted local "
+                    "testing, or use the deployment's own operator key."
                 ),
                 headers={"Retry-After": str(daily.retry_after_seconds())},
             )

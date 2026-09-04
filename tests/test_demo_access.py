@@ -189,8 +189,8 @@ def test_a_decision_still_needs_a_valid_key() -> None:
         assert decide(client, "wrong").status_code == 401
 
 
-def test_a_daily_ceiling_bounds_the_published_key() -> None:
-    """A published key is discoverable, so the day's model spend is capped."""
+def test_a_long_window_bounds_the_published_key_per_process() -> None:
+    """A published key is discoverable, so each process has a longer allowance."""
     with client_for(
         watchtower_demo_rate_limit=100,
         watchtower_demo_rate_window_seconds=600,
@@ -200,7 +200,7 @@ def test_a_daily_ceiling_bounds_the_published_key() -> None:
             assert tick(client, DEMO).status_code == 200
         blocked = tick(client, DEMO)
         assert blocked.status_code == 429
-        assert "daily ceiling" in blocked.json()["detail"]
+        assert "per-instance 24-hour limit" in blocked.json()["detail"]
 
 
 def test_the_daily_ceiling_never_applies_to_the_operator() -> None:

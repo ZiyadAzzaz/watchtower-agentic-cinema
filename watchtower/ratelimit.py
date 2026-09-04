@@ -10,11 +10,12 @@ class SlidingWindowLimiter:
 
     The demo key is printed in the README so judges can drive the full
     decision loop themselves. Nothing it reaches can act on the outside world,
-    but each incident does invoke four Gemini stages, so the rate is capped to
-    keep a public credential from turning into an unbounded model bill.
+    but each incident invokes four Gemini stages, so the limiter reduces model
+    cost exposure from a public credential.
 
-    Cloud Run runs this service at a maximum of one instance, so in-process
-    counters are an accurate global view.
+    Cloud Run runs this service at a maximum of one instance, so the counter is
+    shared by concurrent requests to that process. It intentionally makes no
+    durable daily-cap claim: a process or revision restart resets the window.
     """
 
     def __init__(self, limit: int, window_seconds: float):

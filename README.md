@@ -22,8 +22,8 @@ shared demo key:
 watchtower-judge-demo
 ```
 
-Then press **Simulate incident**, pick any fictional title, region, and failure type, and advance the
-loop. Four Gemini agents investigate through ClickHouse and stop at a decision you make. All three
+Then press **Simulate incident**, pick any fictional title, region, and failure type, and select
+**Arm simulation**. Four Gemini agents investigate through ClickHouse and stop at a decision you make. All three
 signal types — buffer spike, view drop, ad failure — produce a real incident.
 
 The demo key is deliberately separate from the deployment's operator credential, which stays in
@@ -192,7 +192,8 @@ python -m ruff check watchtower tests scripts
 python -m pytest --cov=watchtower --cov-report=term-missing
 ```
 
-Expect **46 passed, 1 deselected**. The deselected test needs Docker and runs against a real
+The audited release passes **81 tests**, with one integration test deselected by the default command.
+The deselected test needs Docker and runs against a real
 ClickHouse instance and the real `mcp-clickhouse` server:
 
 ```bash
@@ -218,6 +219,9 @@ verifying the human approval boundary against the public deployment, with what e
 | `GOOGLE_GENAI_USE_VERTEXAI` | Selects Vertex AI | Must be `true` |
 | `WATCHTOWER_AGENT_MODEL` | ADK Gemini model | `gemini-2.5-flash` |
 | `WATCHTOWER_ADMIN_TOKEN` | Protects injection and decisions | Required; Secret Manager only |
+| `WATCHTOWER_DEMO_TOKEN` | Restricted public review access | Separate from operator token |
+| `WATCHTOWER_DEMO_RATE_LIMIT` | Short-window review-key allowance | `10` by default |
+| `WATCHTOWER_DEMO_DAILY_LIMIT` | Per-instance 24-hour allowance | `40` in the public release |
 | `WATCHTOWER_BOOTSTRAP_SCHEMA` | Allows schema creation | Must be `false` in production |
 | `CLICKHOUSE_USER/PASSWORD` | Ingestion and incident identity | Scoped `SELECT, INSERT` |
 | `CLICKHOUSE_MCP_USER/PASSWORD` | Official MCP identity | Scoped `SELECT` only |
@@ -231,12 +235,12 @@ plain text.
 The guarded deployment profile is deliberately cost-constrained:
 
 - fixed project `watchtower-507216` and region `us-central1`;
-- private by default; public release requires a separate switch and approval;
+- deployment scripts preserve the current invoker policy unless an explicit public/private switch is supplied;
 - request-based billing with minimum instances `0`;
 - maximum instances `1`, concurrency `20`;
 - 1 vCPU, 512 MiB memory, and a 120-second request timeout;
 - credentials supplied from Secret Manager;
-- dedicated runtime service account with Vertex AI User and access to only three named secrets.
+- dedicated runtime service account with Vertex AI User and access to four named secrets.
 
 Production validation refuses another project, non-Vertex AI mode, unverified ClickHouse transport,
 missing credentials, or schema-bootstrap permission. The process listens before a sleeping remote
@@ -247,28 +251,21 @@ operational APIs return HTTP 503 until initialization succeeds.
 > path `/healthz` itself, so that request never reaches the container. All three paths are the
 > same handler, and `/readyz`, `/ready`, and `/api/readyz` are likewise equivalent.
 
-See [the guarded deployment guide](docs/DEPLOYMENT.md) and
-[the post-access execution runbook](docs/POST_ACCESS_RUNBOOK.md).
+See [the guarded deployment guide](docs/DEPLOYMENT.md).
 
-## Cost guardrails
+## Cost-aware operation
 
-The Google Cloud project has an $80 gross-cost budget with actual-spend alerts at $25, $50, $75, and
-$80. Credits are excluded from the calculation. Budget notifications are not an automatic hard cap,
-so the deployment also uses scale-to-zero, one maximum instance, and event-gated Gemini.
+The service uses event-gated Gemini, request-based Cloud Run billing, scale-to-zero, one maximum
+instance, and two in-process review-key rate limits. The 24-hour counter is deliberately described
+as per-instance: it resets when a process or revision restarts, so cloud billing alerts and owner
+review remain the authoritative spend controls. No repository script changes billing settings.
 
-ClickHouse Cloud account billing controls are owner-managed. See
-[the standalone billing action](docs/CLICKHOUSE_BILLING_ALERTS.md) for the required $100, $200, and
-$300 checkpoints.
+## Documentation
 
-No script changes a payment method, billing-account link, or unrelated project.
-
-## Demo and submission material
-
-- [Three-minute demo runbook](docs/DEMO_SCRIPT.md)
-- [Paste-ready Devpost copy](docs/DEVPOST_SUBMISSION.md)
 - [Architecture and trust model](docs/ARCHITECTURE.md)
+- [Product walkthrough and judge testing guide](docs/WALKTHROUGH.md)
+- [Verification guide](docs/TESTING.md)
 - [Guarded production deployment](docs/DEPLOYMENT.md)
-- [Current professional project report](PROJECT_REPORT.md)
 
 ## Transparency and contest compliance
 
@@ -280,14 +277,9 @@ title, poster, studio asset, media database, or third-party media.
 The shipped runtime imports Google ADK and Google Gen AI only. It contains no OpenAI, Anthropic, or
 other non-Google model SDK. A passing policy test enforces this restriction.
 
-WatchTower is the sole original work of Ziyad Azzaz. A `commit-msg` hook in `.githooks` keeps
-authorship metadata clean by stripping tool-attribution trailers from commit messages; it leaves
-technology references such as Google ADK, Gemini, Vertex AI, and `mcp-clickhouse` untouched. Enable
-it after cloning with:
-
-```bash
-git config core.hooksPath .githooks
-```
+WatchTower was created during the contest period. Its fictional catalog, interface, telemetry, and
+incident scenarios are original project assets, while third-party libraries and services retain
+their own licenses and terms.
 
 ## Troubleshooting
 

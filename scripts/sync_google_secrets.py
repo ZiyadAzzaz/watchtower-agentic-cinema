@@ -53,6 +53,11 @@ def main() -> None:
         "watchtower-clickhouse-app-password": (settings.clickhouse_password.get_secret_value()),
         "watchtower-clickhouse-mcp-password": (settings.clickhouse_mcp_password.get_secret_value()),
         "watchtower-admin-token": admin_token,
+        "watchtower-demo-token": (
+            settings.watchtower_demo_token.get_secret_value()
+            if settings.watchtower_demo_token
+            else ""
+        ),
     }
     if any(not value or value.startswith(("REPLACE_", "change-me")) for value in values.values()):
         raise RuntimeError("A required runtime secret is missing or still a placeholder.")

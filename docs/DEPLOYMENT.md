@@ -8,8 +8,9 @@ changes the active `gcloud` default project, and no script contains a billing co
 1. A smallest-viable ClickHouse Cloud service funded by the hackathon credit.
 2. Database `watchtower`, schema from `infra/clickhouse/init.sql`, an application identity with
    `SELECT, INSERT`, and a separate MCP identity with `SELECT` only.
-3. Three Secret Manager secrets: `watchtower-clickhouse-app-password`,
-   `watchtower-clickhouse-mcp-password`, and `watchtower-admin-token`.
+3. Four Secret Manager secrets: `watchtower-clickhouse-app-password`,
+   `watchtower-clickhouse-mcp-password`, `watchtower-admin-token`, and
+   `watchtower-demo-token`.
 4. An Artifact Registry image built from the checked Dockerfile.
 
 Never reuse the local passwords in `docker-compose.yml`. Generate independent production values.
@@ -18,7 +19,7 @@ Never reuse the local passwords in `docker-compose.yml`. Generate independent pr
 
 Run `scripts/prepare-google-cloud.ps1`. It enables only Vertex AI, Artifact Registry, Cloud Build,
 Cloud Run, and Secret Manager, creates the dedicated runtime identity if necessary, and grants only
-Vertex AI User at project scope. Grant Secret Accessor to that identity on each of the three secrets
+Vertex AI User at project scope. Grant Secret Accessor to that identity on each of the four secrets
 individually, not at project scope.
 
 ## Deploy privately first
@@ -44,8 +45,8 @@ the operator token, scoped credentials, or the exact project ID are missing.
 
 Production remote initialization runs after the process begins listening. `/healthz` confirms that
 the web process is alive; `/readyz` and operational APIs return HTTP 503 until ClickHouse
-initialization succeeds. Use [POST_ACCESS_RUNBOOK.md](POST_ACCESS_RUNBOOK.md) for the exact private
-build, deployment, authentication, incident, policy, and CI verification sequence.
+initialization succeeds. Before release, verify authentication rejection, one complete incident,
+the MCP-backed trace, a recorded human decision, and the CI result for the deployed commit.
 
 > On Cloud Run use `/health` or `/api/healthz`: Google's serverless frontend answers the exact
 > path `/healthz` itself, so that request never reaches the container. All three paths are the

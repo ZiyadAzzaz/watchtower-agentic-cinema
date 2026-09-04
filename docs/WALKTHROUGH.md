@@ -32,8 +32,8 @@ nowhere else, and it disappears when you close the tab.
 
 The review key reaches exactly four endpoints (arm, advance, approve, dismiss). It cannot read or
 delete anything: the database identity behind it holds `SELECT, INSERT` only. Starting an
-investigation is rate limited and capped daily so a public key cannot run up an unbounded model
-bill; **recording a decision is never limited**, because finishing the loop is the point.
+investigation is protected by short-window and per-instance 24-hour limits to reduce model-cost
+exposure; **recording a decision is never limited**, because finishing the loop is the point.
 
 ---
 
@@ -157,7 +157,7 @@ two colours in code.
 | Page is slow on the first load | Cold start from zero instances. Roughly 30 seconds, once. |
 | **Telemetry unavailable** | ClickHouse Cloud is waking. It recovers on its own; refresh after a moment. |
 | A control says a key is required | Open **⌘** and paste the review key. |
-| `429` when arming | Rate limit or the daily ceiling on the shared key. Recording a decision still works. Run locally with `docker compose` for unlimited use. |
+| `429` when arming | The shared key reached a short-window or per-instance 24-hour limit. Recording a decision still works. Run locally with `docker compose` for unrestricted local testing. |
 | Arming produced no incident | Rare. Arm once more; detection needs the window to clear its threshold. |
 
 See [TESTING.md](TESTING.md) to verify any of this yourself, including from the command line.
