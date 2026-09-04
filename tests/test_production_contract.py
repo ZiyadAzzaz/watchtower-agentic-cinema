@@ -189,28 +189,38 @@ def test_each_thread_gets_its_own_clickhouse_client(monkeypatch) -> None:
     import threading
 
     created: list[object] = []
+    created_lock = threading.Lock()
 
     def fake_client(*args, **kwargs):
         client = object()
-        created.append(client)
+        with created_lock:
+            created.append(client)
         return client
 
     monkeypatch.setattr(repository_module.clickhouse_connect, "get_client", fake_client)
     repository = ClickHouseRepository(production_settings())
 
-    seen: dict[int, object] = {}
+    threads_count = 4
+    # Hold every thread alive at once: a finished thread's id can be reused,
+    # which would hide a shared client rather than expose it.
+    barrier = threading.Barrier(threads_count)
+    seen: list[object] = []
+    seen_lock = threading.Lock()
 
     def grab() -> None:
-        seen[threading.get_ident()] = repository.client
+        client = repository.client
         # A second access on the same thread must reuse, not reconnect.
-        assert repository.client is seen[threading.get_ident()]
+        assert repository.client is client
+        barrier.wait(timeout=10)
+        with seen_lock:
+            seen.append(client)
 
-    threads = [threading.Thread(target=grab) for _ in range(4)]
+    threads = [threading.Thread(target=grab) for _ in range(threads_count)]
     for t in threads:
         t.start()
     for t in threads:
-        t.join()
+        t.join(timeout=10)
 
-    assert len(seen) == 4, "each thread should have recorded a client"
-    assert len(set(id(c) for c in seen.values())) == 4, "clients must not be shared"
-    assert len(created) == 4, "exactly one connection per thread"
+    assert len(seen) == threads_count, "each thread should have recorded a client"
+    assert len({id(c) for c in seen}) == threads_count, "clients must not be shared across threads"
+    assert len(created) == threads_count, "exactly one connection per thread"
