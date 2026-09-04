@@ -1,6 +1,6 @@
 # WatchTower — paste-ready Devpost submission
 
-Replace only the two bracketed URLs after public-release approval. Everything else is ready to
+The live application and source URLs are final. Replace only the demo-video URL. Everything else is ready to
 paste.
 
 ## Project name
@@ -14,8 +14,8 @@ quantifies business impact, and drafts a reversible response for approval.
 
 ## Links
 
-- Live application: `[PUBLIC_CLOUD_RUN_URL]`
-- Source code: `[PUBLIC_GITHUB_URL]`
+- Live application: <https://watchtower-283557821298.us-central1.run.app>
+- Source code: <https://github.com/ZiyadAzzaz/watchtower-agentic-cinema>
 - Demo video: `[PUBLIC_VIDEO_URL]`
 
 ## Inspiration

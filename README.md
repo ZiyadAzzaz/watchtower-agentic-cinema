@@ -7,6 +7,13 @@ approve or dismiss.
 
 Built from scratch for **Agentic Cinema: The Blockbuster Hackathon — ClickHouse Track**.
 
+**Live application:** <https://watchtower-283557821298.us-central1.run.app>
+
+The dashboard is open to everyone. Injecting an anomaly, advancing the loop, and approving or
+dismissing an incident require the operator token, so the human decision boundary holds in public.
+The service scales to zero, so the first request after an idle period takes roughly 30 seconds while
+readiness reports `503`.
+
 > WatchTower never executes an operational recommendation. Approval records a human decision; it
 > does not call a CDN, ad platform, playback system, or other downstream service.
 

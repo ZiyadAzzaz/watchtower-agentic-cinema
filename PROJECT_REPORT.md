@@ -8,9 +8,11 @@
 
 **Competition:** Agentic Cinema: The Blockbuster Hackathon — ClickHouse Track
 
-**Repository:** `ZiyadAzzaz/watchtower-agentic-cinema` (private)
+**Repository:** <https://github.com/ZiyadAzzaz/watchtower-agentic-cinema> (public)
 
-**Current release state:** Product complete and **verified live on private Cloud Run**; awaiting the owner’s explicit public-release approval
+**Live application:** <https://watchtower-283557821298.us-central1.run.app>
+
+**Current release state:** **Publicly released and verified.** Demo recording and Devpost submission remain.
 
 ## 1. Executive summary
 
@@ -131,7 +133,7 @@ All listed resources belong to `watchtower-507216`; project number `283557821298
 | **Released container image** | `watchtower:baseline-fix-20260904` |
 | **Released image digest** | `sha256:e10cea5c563846334b4cc218af358c972f8a8cb0deb85e905ff7996ed0ab5001` (build `ef43a82e-57ea-4898-b3ec-708cbadb9707`) |
 | **Cloud Run service** | Private `watchtower`; ready revision `watchtower-00006-gz8` serving 100% of traffic |
-| **Private service URL** | `https://watchtower-283557821298.us-central1.run.app` (identity token required) |
+| **Public service URL** | <https://watchtower-283557821298.us-central1.run.app> |
 
 The build upload was inspected before submission: 35 files totaling approximately 139 KB were
 included. `.env`, Git metadata, tests, internal briefs, and local caches were excluded. No secret
@@ -211,7 +213,9 @@ ClickHouse console. Database credentials cannot configure account-level billing 
 | **Hosted quantified impact** | **Pass — 52 affected sessions, 35.5 lost viewer-hours, $6.90, severity `low`** |
 | **Hosted human approval** | **Pass — `pending_approval` → `approved`, persisted; no action executed** |
 | **Hosted duplicate suppression** | **Pass — ticks 2–4 created no further incident** |
-| **Hosted privacy checkpoint** | **Pass — Cloud Run IAM policy contains no bindings; `allUsers`/`allAuthenticatedUsers` absent** |
+| **Hosted privacy checkpoint (pre-release)** | **Pass — Cloud Run IAM policy contained no bindings before the approved release** |
+| **Public judge-mode smoke test** | **Pass — no credentials: dashboard, 12 titles, `operational`; cold start to ready in 28 s** |
+| **Public control-endpoint lockdown** | **Pass — `inject`, `tick`, `approve`, and a wrong token all rejected 401 from the open internet** |
 | **Hosted cost limits** | **Pass — minScale 0, maxScale 1, concurrency 20, 1 vCPU, 512 MiB, 120 s timeout** |
 
 All corrections above are committed and built. The evidence in this table was produced against the
@@ -302,7 +306,7 @@ live private Cloud Run revision `watchtower-00006-gz8`, not against a local proc
 | Corrected private Cloud Run revision | **Complete — `watchtower-00006-gz8` ready and serving** |
 | Hosted end-to-end verification | **Complete — all eleven hosted checks pass** |
 | GitHub | Private; September 4 corrections committed and pushed |
-| Public service/repository | Not authorized and not published |
+| Public service/repository | **Released September 4, 2026 under explicit owner approval** |
 | Demo video and Devpost | Prepared materials exist; recording/submission pending |
 
 ## 11. Execution record and remaining sequence
@@ -450,7 +454,56 @@ LlamaIndex, CrewAI, AutoGen, or Semantic Kernel package or import exists in `wat
 `requirements.txt`, or `pyproject.toml`. The corrections made on September 4 touched only lifecycle,
 transport, and seeding logic; no dependency was added.
 
-### Standing gate
+## 16. September 4 public release
 
-The Cloud Run service and the GitHub repository are **private**. Section 13 of the runbook is not
-satisfied and must not be actioned without the project owner's explicit approval.
+The project owner gave explicit approval to publish both the Cloud Run service and the GitHub
+repository. Section 13 of the runbook was satisfied and executed.
+
+### Pre-publication audit
+
+| Check | Result |
+|---|---|
+| Secret files anywhere in Git history | None. `.env` was never tracked; `.gitignore` excludes it and every variant |
+| Secret values anywhere in Git history | None. The only match was the test fixture literal in `tests/test_config.py` |
+| Non-Google AI SDK in runtime or manifests | None. Runtime AI imports are `google.adk` and `google.genai` only |
+| Real third-party media, artwork, or metadata | None. All 12 titles are original; the UI contains **no external URLs at all** and every cover is code-native gradient art |
+| ClickHouse Cloud endpoint in public docs | Redacted from `docs/POST_ACCESS_RUNBOOK.md` before publication |
+| Google Cloud budget checkpoint | No alert fired at $25, $50, $75, or $80 |
+| ClickHouse Cloud checkpoint | No checkpoint reported as reached by the owner |
+
+### Publication actions
+
+1. `roles/run.invoker` granted to `allUsers` on the `watchtower` Cloud Run service. No revision was
+   redeployed and no runtime configuration changed; `watchtower-00006-gz8` still serves all traffic
+   with minScale 0 and maxScale 1.
+2. Repository visibility changed from private to public.
+
+### Post-release verification, performed with no credentials of any kind
+
+| Check | Result |
+|---|---|
+| `GET /` | 200 |
+| `GET /api/healthz` | 200 |
+| `GET /readyz` from a cold, scaled-to-zero service | 503 during initialization, then `operational` after 28 s |
+| `GET /api/dashboard` | 12 fictional titles, `production`, `operational`, 8,760 events |
+| `POST /api/admin/inject` | **401** |
+| `POST /api/admin/tick` | **401** |
+| `POST /api/incidents/{id}/approve` | **401** |
+| `POST /api/admin/tick` with an incorrect operator token | **401** |
+
+The human approval boundary therefore holds against the open internet: anyone may observe WatchTower,
+and nobody without the operator token may inject an anomaly, advance the loop, or record a decision.
+
+### Known residual item
+
+`docs/POST_ACCESS_RUNBOOK.md` was committed in `a24d446` containing the ClickHouse Cloud endpoint
+hostname before it was redacted, so that hostname remains readable in the public Git history. The
+endpoint is protected by TLS verification and scoped, least-privilege passwords held in Secret
+Manager, and no credential was ever committed. Removing it from history would require a rewrite and
+force-push, which has not been performed.
+
+### Remaining work
+
+1. Record the three-minute demo using `docs/DEMO_SCRIPT.md`.
+2. Submit on Devpost using `docs/DEVPOST_SUBMISSION.md`, with the live URL and public repository.
+3. Record the Google Cloud and ClickHouse Cloud console spend totals (owner action).

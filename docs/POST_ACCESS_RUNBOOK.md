@@ -70,6 +70,10 @@ Record the build ID and immutable image digest in `PROJECT_REPORT.md`.
   -ClickHouseHost "<clickhouse-cloud-host>.us-central1.gcp.clickhouse.cloud"
 ```
 
+Substitute the real ClickHouse Cloud endpoint from the owner's console. The endpoint is deliberately
+not recorded in this public repository: it is password-protected and TLS-verified, but publishing it
+would hand an unnecessary target to credential-stuffing traffic.
+
 Do not pass `-AllowPublic`. The script enforces minimum instances 0, maximum instances 1,
 concurrency 20, 1 CPU, 512 MiB, verified TLS, Secret Manager, and the dedicated runtime identity.
 
