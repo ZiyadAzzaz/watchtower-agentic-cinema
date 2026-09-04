@@ -28,3 +28,6 @@ watchtower_architecture.html
 
 # Local verification captures, not part of the product source.
 evidence/
+
+# Full-page capture used to produce docs/images; source asset, not product source.
+docs/watch-tower.pdf

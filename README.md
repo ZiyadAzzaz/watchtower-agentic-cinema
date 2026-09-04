@@ -17,6 +17,27 @@ readiness reports `503`.
 > WatchTower never executes an operational recommendation. Approval records a human decision; it
 > does not call a CDN, ad platform, playback system, or other downstream service.
 
+![WatchTower dashboard: live telemetry and the four-stage agent pipeline](docs/images/01-dashboard-hero.png)
+
+Four specialized agents turn live delivery telemetry into a quantified, evidence-led action — then
+stop for a human decision. The pipeline is event-gated: Gemini is not called on every tick.
+
+![Live signal chart and the guardrail panel](docs/images/02-live-signal.png)
+
+Every reading comes from ClickHouse. Agents reach the data only through the official read-only
+`mcp-clickhouse` server, and the action agent has no execution tool of any kind.
+
+![Incident queue showing a buffer spike with quantified impact awaiting approval](docs/images/03-incident-queue.png)
+
+An incident is a decision, not an alert. Each one carries a root cause traced to a specific CDN node,
+an estimated dollar impact, and lost viewer-hours — and waits for a person.
+
+![The twelve original fictional titles with code-native gradient artwork](docs/images/04-fictional-catalog.png)
+
+All twelve titles, descriptions, and covers are original and fictional. The artwork is generated from
+CSS gradients in code — there is no third-party media data, poster art, or external image request
+anywhere in the product.
+
 ## Why it is different
 
 - **Continuous, not conversational:** monitoring runs as an event-gated operations loop.
@@ -141,26 +162,25 @@ scopes and does not delete cloud data.
 
 ## Verification
 
-Fast quality gate without external services:
-
-```powershell
-conda activate watch-tower
+```bash
 python -m ruff format --check watchtower tests scripts
 python -m ruff check watchtower tests scripts
 python -m pytest --cov=watchtower --cov-report=term-missing
 ```
 
-Real ClickHouse and official MCP integration, requiring the local ClickHouse container:
+Expect **46 passed, 1 deselected**. The deselected test needs Docker and runs against a real
+ClickHouse instance and the real `mcp-clickhouse` server:
 
-```powershell
+```bash
+docker compose up -d --wait clickhouse
 python -m pytest tests/test_clickhouse_integration.py -m integration -vv
 ```
 
-The integration test proves that synthetic events reach real ClickHouse, detection and root-cause
-queries run through official `mcp-clickhouse`, the planted anomaly becomes a pending incident, and a
-destructive query is rejected. The cloud verification scripts additionally prove verified TLS,
-scoped identities, real Vertex AI Gemini execution, all four ADK stages, in-agent MCP evidence calls,
-and human-gated structured output.
+`tests/test_production_contract.py` pins every defect that once reached a live Cloud Run revision,
+and asserts that no execution tool exists anywhere in the runtime.
+
+**[docs/TESTING.md](docs/TESTING.md) is the full guide** — five levels, from a five-second lint to
+verifying the human approval boundary against the public deployment, with what each one proves.
 
 ## Configuration
 
