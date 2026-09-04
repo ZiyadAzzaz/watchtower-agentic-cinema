@@ -134,3 +134,35 @@ async def test_stale_history_is_reseeded() -> None:
     assert repository.recent_event_count(67) >= 1200
     # A fresh baseline must not be re-seeded on the next call.
     assert await runtime.ensure_baseline_history() is False
+
+
+def test_clickhouse_timestamps_are_marked_utc() -> None:
+    """A naive timestamp is read as local time by the browser."""
+    from watchtower.runtime import _as_utc_iso
+
+    assert _as_utc_iso("2026-09-04 10:13:56.805000") == "2026-09-04T10:13:56.805000Z"
+    assert _as_utc_iso("2026-09-04 09:44:00") == "2026-09-04T09:44:00Z"
+    # Already-marked values and non-strings pass through untouched.
+    assert _as_utc_iso("2026-09-04T09:44:00Z") == "2026-09-04T09:44:00Z"
+    assert _as_utc_iso("2026-09-04T09:44:00+00:00") == "2026-09-04T09:44:00+00:00"
+    assert _as_utc_iso(None) is None
+    assert _as_utc_iso(datetime(2026, 9, 4, 9, 44, tzinfo=UTC)) == "2026-09-04T09:44:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_dashboard_marks_timestamps_utc() -> None:
+    runtime = WatchtowerRuntime(
+        Settings(watchtower_env="test", _env_file=None),
+        MemoryRepository(),
+        StaticQueryExecutor(
+            [
+                [],  # the detection scan dashboard() runs first
+                [{"event_count": 1, "last_event_at": "2026-09-04 10:13:56"}],
+                [{"minute": "2026-09-04 09:44:00", "views": 10}],
+            ]
+        ),
+        agents=StubAgents(),
+    )
+    payload = await runtime.dashboard()
+    assert payload["summary"]["last_event_at"] == "2026-09-04T10:13:56Z"
+    assert payload["timeseries"][0]["minute"] == "2026-09-04T09:44:00Z"

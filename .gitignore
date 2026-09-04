@@ -25,3 +25,6 @@ build/
 watchtower_agent_brief.md
 watchtower_full_spec.md
 watchtower_architecture.html
+
+# Local verification captures, not part of the product source.
+evidence/

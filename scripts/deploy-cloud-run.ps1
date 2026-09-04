@@ -7,7 +7,8 @@ param(
     [string]$ClickHouseHost,
 
     [string]$Region = "us-central1",
-    [switch]$AllowPublic
+    [switch]$AllowPublic,
+    [switch]$ForcePrivate
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,9 +35,25 @@ foreach ($SecretName in $ExpectedSecrets) {
     }
 }
 
-$AuthFlag = if ($AllowPublic) { "--allow-unauthenticated" } else { "--no-allow-unauthenticated" }
+if ($AllowPublic -and $ForcePrivate) {
+    throw "Choose either -AllowPublic or -ForcePrivate, not both."
+}
+
+# Deployment must not silently change who may invoke the service. Passing
+# --no-allow-unauthenticated by default would revoke public access on every
+# routine redeploy of an intentionally public release, so the invoker policy is
+# left exactly as it is unless a switch asks for a change.
+$AuthFlag = @()
 if ($AllowPublic) {
     Write-Warning "This release will be public. Continue only after the explicit release checkpoint."
+    $AuthFlag = @("--allow-unauthenticated")
+}
+elseif ($ForcePrivate) {
+    Write-Warning "This release will revoke public invocation and make the service private."
+    $AuthFlag = @("--no-allow-unauthenticated")
+}
+else {
+    Write-Host "Invoker policy left unchanged. Use -AllowPublic or -ForcePrivate to change it."
 }
 
 $Environment = @(
@@ -74,7 +91,7 @@ $Secrets = @(
     --cpu=1 `
     --memory=512Mi `
     --timeout=120 `
-    $AuthFlag
+    @AuthFlag
 
 if ($LASTEXITCODE -ne 0) {
     throw "Cloud Run deployment failed."
@@ -84,3 +101,8 @@ if ($LASTEXITCODE -ne 0) {
     --project=$ProjectId `
     --region=$Region `
     --format="yaml(metadata.name,status.url,spec.template.metadata.annotations,spec.template.spec.containerConcurrency)"
+
+& gcloud run services get-iam-policy $Service `
+    --project=$ProjectId `
+    --region=$Region `
+    --format="yaml(bindings)"

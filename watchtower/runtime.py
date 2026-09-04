@@ -25,6 +25,21 @@ from watchtower.root_cause import RootCauseAnalyzer
 from watchtower.sql import detection_query, live_summary_query, root_cause_query, timeseries_query
 
 
+def _as_utc_iso(value: Any) -> Any:
+    """Mark a ClickHouse timestamp as UTC.
+
+    ClickHouse returns naive strings such as "2026-09-04 10:13:56". A browser
+    parses those as local time, so an operator in UTC+3 sees a live reading
+    reported as three hours stale. Everything WatchTower stores is UTC, so the
+    designator is added explicitly before the value leaves the API.
+    """
+    if isinstance(value, datetime):
+        return value.replace(tzinfo=value.tzinfo or UTC).isoformat()
+    if isinstance(value, str) and value and not value.endswith("Z") and "+" not in value:
+        return value.replace(" ", "T") + "Z"
+    return value
+
+
 class WatchtowerRuntime:
     def __init__(
         self,
@@ -166,8 +181,14 @@ class WatchtowerRuntime:
         summary_rows = await self.mcp.query(live_summary_query(self.settings.clickhouse_database))
         timeseries = await self.mcp.query(timeseries_query(self.settings.clickhouse_database))
         incidents = await asyncio.to_thread(self.repository.list_incidents, 30)
+        summary = dict(summary_rows[0]) if summary_rows else {}
+        if "last_event_at" in summary:
+            summary["last_event_at"] = _as_utc_iso(summary["last_event_at"])
+        for point in timeseries:
+            if "minute" in point:
+                point["minute"] = _as_utc_iso(point["minute"])
         return {
-            "summary": summary_rows[0] if summary_rows else {},
+            "summary": summary,
             "timeseries": timeseries,
             "incidents": [item.model_dump(mode="json") for item in incidents],
             "titles": [title.model_dump(mode="json") for title in TITLE_BY_ID.values()],

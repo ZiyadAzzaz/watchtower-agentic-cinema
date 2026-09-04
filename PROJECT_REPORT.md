@@ -130,9 +130,9 @@ All listed resources belong to `watchtower-507216`; project number `283557821298
 | First container image | `watchtower:3f6d79a` |
 | First image digest | `sha256:2694a2a56f63923e716d33792c39c2fd8ca8c6830bf7b167ee9351919a56f25b` |
 | Cloud Build ID | `9266dfe2-8ff7-41de-b75a-cf913ffb784b` — successful |
-| **Released container image** | `watchtower:baseline-fix-20260904` |
-| **Released image digest** | `sha256:e10cea5c563846334b4cc218af358c972f8a8cb0deb85e905ff7996ed0ab5001` (build `ef43a82e-57ea-4898-b3ec-708cbadb9707`) |
-| **Cloud Run service** | Private `watchtower`; ready revision `watchtower-00006-gz8` serving 100% of traffic |
+| **Released container image** | `watchtower:utc-timestamps-20260904` |
+| **Released image digest** | `sha256:9240db8ae406ec89667d5c6782ddc72923ff5059659b6db47d8840fa8143009a` (build `fdfb1464-01ad-494e-9e38-6c64fe766020`) |
+| **Cloud Run service** | Public `watchtower`; ready revision `watchtower-00007-gmh` serving 100% of traffic |
 | **Public service URL** | <https://watchtower-283557821298.us-central1.run.app> |
 
 The build upload was inspected before submission: 35 files totaling approximately 139 KB were
@@ -287,6 +287,20 @@ live private Cloud Run revision `watchtower-00006-gz8`, not against a local proc
     by the number of rows inside the baseline window, and a detection tick re-seeds a thin baseline
     before generating, so the service self-heals after any idle gap. A regression test stores
     three-day-old history and asserts it is re-seeded once and not re-seeded again.
+
+17. **ClickHouse timestamps reached the browser without a timezone designator.** The live-summary
+    and time-series queries returned naive strings such as `2026-09-04 10:13:56`. A browser parses
+    those as local time, so the dashboard reported a reading taken seconds earlier as
+    `Updated 180m ago` when viewed from UTC+3, and would have shown `Updated 420m ago` to a judge in
+    US Pacific time. The values are now marked UTC before they leave the API, and two regression
+    tests cover the conversion and the dashboard payload.
+18. **Redeploying silently revoked public access.** `scripts/deploy-cloud-run.ps1` passed
+    `--no-allow-unauthenticated` whenever `-AllowPublic` was absent, which was correct while the
+    release was private but meant that any routine redeploy of the public service removed the
+    `allUsers` invoker binding. This was observed and corrected during the timestamp deployment. The
+    script now leaves the invoker policy untouched by default and changes it only when explicitly
+    asked with `-AllowPublic` or the new `-ForcePrivate`, and it prints the resulting IAM policy so
+    the outcome is always visible.
 
 ## 10. Current status matrix
 
@@ -471,7 +485,7 @@ repository. Section 13 of the runbook was satisfied and executed.
 ### Publication actions
 
 1. `roles/run.invoker` granted to `allUsers` on the `watchtower` Cloud Run service. No revision was
-   redeployed and no runtime configuration changed; `watchtower-00006-gz8` still serves all traffic
+   redeployed and no runtime configuration changed; `watchtower-00007-gmh` serves all traffic
    with minScale 0 and maxScale 1.
 2. Repository visibility changed from private to public.
 
