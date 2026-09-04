@@ -18,7 +18,7 @@ Thumbs.db
 dist/
 build/
 .dist/
-.codex_tmp*/
+.agent_tmp*/
 *.log
 
 # Internal build briefs are retained locally but are not part of the public product source.

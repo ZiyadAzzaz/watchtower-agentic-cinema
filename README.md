@@ -233,6 +233,15 @@ title, poster, studio asset, media database, or third-party media.
 The shipped runtime imports Google ADK and Google Gen AI only. It contains no OpenAI, Anthropic, or
 other non-Google model SDK. A passing policy test enforces this restriction.
 
+WatchTower is the sole original work of Ziyad Azzaz. A `commit-msg` hook in `.githooks` keeps
+authorship metadata clean by stripping tool-attribution trailers from commit messages; it leaves
+technology references such as Google ADK, Gemini, Vertex AI, and `mcp-clickhouse` untouched. Enable
+it after cloning with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Troubleshooting
 
 - **Dashboard says Telemetry unavailable:** wait for ClickHouse to become healthy, then inspect

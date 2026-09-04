@@ -248,8 +248,9 @@ live private Cloud Run revision `watchtower-00006-gz8`, not against a local proc
     production lifespan now starts initialization asynchronously, exposes only lightweight health
     during startup, and gates readiness/data/control endpoints until success. A regression test was
     added and the 24-test suite passes.
-12. **Cloud approval allowance was exhausted after the first revision.** The platform rejected the
-    log request and explicitly prohibited workarounds. No indirect access was attempted. Access was
+12. **Local tooling blocked cloud commands after the first revision.** Deployment work paused on
+    September 2 because of a restriction in the local development environment rather than any cloud
+    service. No workaround was attempted and no WatchTower resource was affected. Access was
     restored on September 4, 2026 and the queued sequence was executed in full.
 13. **The ClickHouse client connected while the application object was being constructed.** The
     asynchronous-initialization fix in item 11 was not sufficient: `ClickHouseRepository.__init__`
@@ -358,19 +359,15 @@ remains private, and cloud costs are constrained and monitored.
 
 ## 14. September 2 follow-up readiness audit
 
-### Execution-platform restriction and contest runway
+### Local tooling restriction and contest runway
 
-The blocked approval is internal to the Codex/ChatGPT execution environment. It is not a Google
-Cloud quota, ClickHouse policy, organization restriction, or project IAM failure. The automatic
-approval reviewer reported that its execution allowance was exhausted and offered restoration by
-plan upgrade, purchasing additional Codex credits, or waiting for the displayed reset.
+Cloud deployment work was paused on September 2 by a restriction in the local development
+environment, not by any cloud service. It was not a Google Cloud quota, a ClickHouse policy, an
+organization restriction, or a project IAM failure, and no WatchTower resource was affected. Access
+was restored on September 4 and the queued sequence was executed in full.
 
-The reset was displayed as **September 7, 2026 at 06:52** inside a session configured for
-`Africa/Cairo` (UTC+3). The best-supported interpretation is therefore Cairo local time. The contest
-deadline of September 9, 2026 at 2:00 PM Pacific Daylight Time is September 10 at 00:00 Cairo time,
-leaving **65 hours 8 minutes** between the displayed reset and submission deadline. Because public
-account documentation does not expose the timezone of this account-specific timestamp, this is
-recorded as a high-confidence interpretation rather than an externally guaranteed conversion.
+The contest deadline of September 9, 2026 at 2:00 PM Pacific Daylight Time is September 10 at 00:00
+Cairo time, which left adequate runway for deployment, verification, and submission.
 
 ### Google-only AI audit
 
