@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     watchtower_mcp_timeout_seconds: int = Field(default=30, ge=5, le=120)
     watchtower_bootstrap_schema: bool = True
     watchtower_admin_token: SecretStr | None = None
+    # Published in the README so judges can drive the full decision loop. It is
+    # deliberately separate from the operator token, which stays in Secret
+    # Manager, and every request it authorises is rate limited.
+    watchtower_demo_token: SecretStr | None = None
+    watchtower_demo_rate_limit: int = Field(default=10, ge=1, le=100)
+    watchtower_demo_rate_window_seconds: int = Field(default=600, ge=30, le=3600)
 
     clickhouse_host: str = "localhost"
     clickhouse_port: int = Field(default=8123, ge=1, le=65535)
@@ -53,6 +59,12 @@ class Settings(BaseSettings):
                 raise ValueError("Production must use Gemini through Vertex AI.")
             if self.watchtower_admin_token is None:
                 raise ValueError("WATCHTOWER_ADMIN_TOKEN is required in production.")
+            demo = self.watchtower_demo_token
+            if demo is not None:
+                if demo.get_secret_value() == self.watchtower_admin_token.get_secret_value():
+                    raise ValueError("The demo token must differ from the operator token.")
+                if len(demo.get_secret_value()) < 8:
+                    raise ValueError("The demo token must be at least 8 characters.")
             if self.watchtower_bootstrap_schema:
                 raise ValueError("Production runtime identity must not bootstrap database schema.")
             if not self.clickhouse_secure or not self.clickhouse_verify:

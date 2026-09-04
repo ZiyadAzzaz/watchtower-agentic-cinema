@@ -9,8 +9,22 @@ Built from scratch for **Agentic Cinema: The Blockbuster Hackathon — ClickHous
 
 **Live application:** <https://watchtower-283557821298.us-central1.run.app>
 
-The dashboard is open to everyone. Injecting an anomaly, advancing the loop, and approving or
-dismissing an incident require the operator token, so the human decision boundary holds in public.
+**Reviewing this project? Run it yourself.** Open the live app, click the **⌘** panel, and paste the
+shared demo key:
+
+```
+watchtower-judge-demo
+```
+
+Then press **Simulate incident**, pick any fictional title, region, and failure type, and advance the
+loop. Four Gemini agents investigate through ClickHouse and stop at a decision you make. All three
+signal types — buffer spike, view drop, ad failure — produce a real incident.
+
+The demo key is deliberately separate from the deployment's operator credential, which stays in
+Secret Manager. Starting a new investigation is rate limited so a public key cannot run up model
+cost; **approving and dismissing never are**, because finishing the loop is the point. Approving
+records a human decision — the action agent has no execution tool, so nothing downstream is called.
+
 The service scales to zero, so the first request after an idle period takes roughly 30 seconds while
 readiness reports `503`.
 

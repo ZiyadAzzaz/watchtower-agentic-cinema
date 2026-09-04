@@ -5,7 +5,7 @@ import random
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from watchtower.catalog import CDN_NODES, REGIONS, TITLES
+from watchtower.catalog import CDN_NODES, REGIONS, TITLE_BY_ID, TITLES
 from watchtower.models import AnomalyInjectionRequest, AnomalyKind, TelemetryEvent
 from watchtower.repository import Repository
 
@@ -60,6 +60,44 @@ class SyntheticEventGenerator:
 
     def tick(self, at: datetime | None = None) -> int:
         return self.repository.insert_events(self.generate_cycle(at))
+
+    def backfill_injection(
+        self,
+        request: AnomalyInjectionRequest,
+        lookback_minutes: int,
+        spacing_seconds: int = 15,
+        now: datetime | None = None,
+    ) -> int:
+        """Fill the live detection window with the armed anomaly.
+
+        Detection compares an average over the lookback window against a
+        baseline. An anomaly present in only the last few cycles is averaged
+        away by the normal traffic already sitting in that window, so a
+        simulation that merely arms the signal can appear to do nothing. A
+        simulation control is expected to be immediate and deterministic, so
+        the window is written directly for the affected title and region. The
+        baseline window is untouched, and detection still reads the result back
+        out of ClickHouse exactly as it does for organic traffic.
+        """
+        now = now or datetime.now(UTC)
+        title = TITLE_BY_ID.get(request.title_id)
+        if title is None:
+            raise ValueError("Unknown fictional title_id.")
+
+        injection = ActiveInjection(request=request, cycles_remaining=request.duration_cycles)
+        seconds = max(1, int(lookback_minutes) * 60)
+        offsets = range(seconds, 0, -max(1, int(spacing_seconds)))
+        events = [
+            self._event(
+                title.id,
+                title.baseline_popularity,
+                request.region,
+                now - timedelta(seconds=offset),
+                injection,
+            )
+            for offset in offsets
+        ]
+        return self.repository.insert_events(events)
 
     def seed_history(self, minutes: int = 75, now: datetime | None = None) -> int:
         now = now or datetime.now(UTC)

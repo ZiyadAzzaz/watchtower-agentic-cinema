@@ -48,7 +48,7 @@ def test_building_the_repository_never_touches_the_network(monkeypatch) -> None:
 
     monkeypatch.setattr(repository_module.clickhouse_connect, "get_client", fail)
     repository = ClickHouseRepository(production_settings())
-    assert repository._client is None
+    assert getattr(repository._local, "client", None) is None
 
 
 def test_production_serves_health_while_the_datastore_is_unreachable() -> None:
@@ -178,3 +178,39 @@ def test_no_execution_tool_exists_anywhere_in_the_runtime() -> None:
         text = source.read_text(encoding="utf-8")
         for marker in forbidden:
             assert marker not in text, f"{source} defines an execution tool: {marker}"
+
+
+def test_each_thread_gets_its_own_clickhouse_client(monkeypatch) -> None:
+    """clickhouse_connect refuses concurrent queries on one session.
+
+    Repository work runs through asyncio.to_thread, so two requests arriving at
+    once would otherwise collide on a shared client and return 500.
+    """
+    import threading
+
+    created: list[object] = []
+
+    def fake_client(*args, **kwargs):
+        client = object()
+        created.append(client)
+        return client
+
+    monkeypatch.setattr(repository_module.clickhouse_connect, "get_client", fake_client)
+    repository = ClickHouseRepository(production_settings())
+
+    seen: dict[int, object] = {}
+
+    def grab() -> None:
+        seen[threading.get_ident()] = repository.client
+        # A second access on the same thread must reuse, not reconnect.
+        assert repository.client is seen[threading.get_ident()]
+
+    threads = [threading.Thread(target=grab) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert len(seen) == 4, "each thread should have recorded a client"
+    assert len(set(id(c) for c in seen.values())) == 4, "clients must not be shared"
+    assert len(created) == 4, "exactly one connection per thread"

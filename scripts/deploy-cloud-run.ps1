@@ -20,7 +20,8 @@ $RuntimeIdentity = "watchtower-runtime@$ProjectId.iam.gserviceaccount.com"
 $ExpectedSecrets = @(
     "watchtower-clickhouse-app-password",
     "watchtower-clickhouse-mcp-password",
-    "watchtower-admin-token"
+    "watchtower-admin-token",
+    "watchtower-demo-token"
 )
 
 $ResolvedProject = & gcloud projects describe $ProjectId --project=$ProjectId --format="value(projectId)"
@@ -74,7 +75,8 @@ $Environment = @(
 $Secrets = @(
     "CLICKHOUSE_PASSWORD=watchtower-clickhouse-app-password:latest",
     "CLICKHOUSE_MCP_PASSWORD=watchtower-clickhouse-mcp-password:latest",
-    "WATCHTOWER_ADMIN_TOKEN=watchtower-admin-token:latest"
+    "WATCHTOWER_ADMIN_TOKEN=watchtower-admin-token:latest",
+    "WATCHTOWER_DEMO_TOKEN=watchtower-demo-token:latest"
 ) -join ","
 
 & gcloud run deploy $Service `

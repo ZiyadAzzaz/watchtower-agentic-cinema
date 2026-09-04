@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
-from threading import Lock
+from threading import Lock, local
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -26,34 +26,35 @@ class Repository(Protocol):
 class ClickHouseRepository:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._client: Any | None = None
-        self._client_lock = Lock()
+        # One client per thread. Repository calls run through asyncio.to_thread,
+        # and a clickhouse_connect client refuses concurrent queries on the same
+        # session: "Attempt to execute concurrent queries within the same
+        # session. Please use a separate client instance per thread/process."
+        self._local = local()
 
     @property
     def client(self) -> Any:
-        """Connect on first use.
+        """Connect on first use, once per thread.
 
         Cloud Run must bind its port before a possibly idle ClickHouse Cloud
         service finishes waking, so no network handshake may run while the
         application is being constructed.
         """
-        client = self._client
-        if client is not None:
-            return client
-        with self._client_lock:
-            if self._client is None:
-                self._client = clickhouse_connect.get_client(
-                    host=self.settings.clickhouse_host,
-                    port=self.settings.clickhouse_port,
-                    username=self.settings.clickhouse_user,
-                    password=self.settings.clickhouse_password.get_secret_value(),
-                    database=self.settings.clickhouse_database,
-                    secure=self.settings.clickhouse_secure,
-                    verify=self.settings.clickhouse_verify,
-                    connect_timeout=15,
-                    send_receive_timeout=60,
-                )
-            return self._client
+        client = getattr(self._local, "client", None)
+        if client is None:
+            client = clickhouse_connect.get_client(
+                host=self.settings.clickhouse_host,
+                port=self.settings.clickhouse_port,
+                username=self.settings.clickhouse_user,
+                password=self.settings.clickhouse_password.get_secret_value(),
+                database=self.settings.clickhouse_database,
+                secure=self.settings.clickhouse_secure,
+                verify=self.settings.clickhouse_verify,
+                connect_timeout=15,
+                send_receive_timeout=60,
+            )
+            self._local.client = client
+        return client
 
     def initialize(self) -> None:
         database = self.settings.clickhouse_database

@@ -20,11 +20,26 @@ from watchtower.models import (
     IncidentDecisionRequest,
     IncidentStatus,
 )
+from watchtower.ratelimit import SlidingWindowLimiter
 from watchtower.repository import ClickHouseRepository
 from watchtower.runtime import WatchtowerRuntime
 
 STATIC_DIR = Path(__file__).parent / "static"
 LOGGER = logging.getLogger(__name__)
+
+
+def _token_matches(configured: str, presented: str | None) -> bool:
+    """Constant-time compare that tolerates any bytes a client can send.
+
+    hmac.compare_digest raises TypeError on a str containing non-ASCII, so the
+    comparison is done on UTF-8 bytes. Otherwise a caller could turn a rejected
+    credential into a 500 just by sending a non-ASCII header.
+    """
+    if not configured or not presented:
+        return False
+    return hmac.compare_digest(configured.encode("utf-8"), presented.encode("utf-8"))
+
+
 INITIALIZATION_ATTEMPTS = 6
 
 
@@ -43,6 +58,15 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
             app.state.runtime = runtime
         app.state.initialization_error = None
         app.state.initialization_task = None
+        active_settings = app.state.runtime.settings
+        app.state.demo_limiter = (
+            SlidingWindowLimiter(
+                active_settings.watchtower_demo_rate_limit,
+                active_settings.watchtower_demo_rate_window_seconds,
+            )
+            if active_settings.watchtower_demo_token
+            else None
+        )
         if app.state.runtime.settings.is_production:
             # Cloud Run must begin listening before a sleeping remote datastore
             # finishes waking. Readiness and operational endpoints remain closed
@@ -132,16 +156,44 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
         client_host = request.client.host if request.client else ""
         if not settings.is_production and not configured and client_host in local_hosts:
             return
-        if (
-            not configured
-            or not x_watchtower_token
-            or not hmac.compare_digest(
-                configured,
-                x_watchtower_token,
-            )
-        ):
+        if _token_matches(configured, x_watchtower_token):
+            return
+
+        # The demo key is public so judges can run the loop themselves. It
+        # authorises exactly the same actions, but only at a bounded rate.
+        demo = (
+            settings.watchtower_demo_token.get_secret_value()
+            if settings.watchtower_demo_token
+            else ""
+        )
+        if _token_matches(demo, x_watchtower_token):
+            return "demo"
+
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin token required")
+
+    def require_metered_admin(
+        request: Request,
+        credential: str = Depends(require_admin),
+    ) -> None:
+        """Guard the two actions that invoke Gemini.
+
+        Recording a human decision is never metered: approving or dismissing is
+        the point of the product, costs nothing, and a judge must always be able
+        to finish the loop they started.
+        """
+        if credential != "demo":
+            return
+        limiter = request.app.state.demo_limiter
+        if limiter is not None and not limiter.try_acquire():
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin token required"
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    "The shared demo key limits how often a new investigation may be "
+                    "started, so a public credential cannot run up model cost. Approving "
+                    "and dismissing are never limited. Try again shortly, or run "
+                    "WatchTower locally with docker compose for unlimited use."
+                ),
+                headers={"Retry-After": str(limiter.retry_after_seconds())},
             )
 
     @app.get("/", include_in_schema=False)
@@ -170,13 +222,13 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
         except Exception as exc:
             raise HTTPException(status_code=503, detail="Telemetry backend is unavailable") from exc
 
-    @app.post("/api/admin/inject", dependencies=[Depends(require_admin)])
+    @app.post("/api/admin/inject", dependencies=[Depends(require_metered_admin)])
     async def inject(
         payload: AnomalyInjectionRequest,
         active_runtime: WatchtowerRuntime = Depends(get_runtime),
     ) -> dict[str, str | int | float]:
         try:
-            active_runtime.inject(payload)
+            await active_runtime.inject(payload)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return {
@@ -188,7 +240,7 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
             "magnitude": payload.magnitude,
         }
 
-    @app.post("/api/admin/tick", dependencies=[Depends(require_admin)])
+    @app.post("/api/admin/tick", dependencies=[Depends(require_metered_admin)])
     async def tick(active_runtime: WatchtowerRuntime = Depends(get_runtime)) -> dict:
         incidents = await active_runtime.tick_if_due(force=True)
         return {"status": "complete", "incidents_created": len(incidents)}

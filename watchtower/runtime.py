@@ -153,10 +153,17 @@ class WatchtowerRuntime:
             incidents.append(incident)
         return incidents
 
-    def inject(self, request: AnomalyInjectionRequest) -> None:
+    async def inject(self, request: AnomalyInjectionRequest) -> None:
         if request.title_id not in TITLE_BY_ID:
             raise ValueError("Unknown fictional title_id.")
         self.generator.inject(request)
+        # Write the anomaly across the live window so the next detection pass
+        # sees it immediately instead of averaging it away.
+        await asyncio.to_thread(
+            self.generator.backfill_injection,
+            request,
+            self.settings.watchtower_lookback_minutes,
+        )
 
     async def decide(
         self,

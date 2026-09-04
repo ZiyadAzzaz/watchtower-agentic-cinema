@@ -108,8 +108,14 @@
   <dialog id="settingsDialog">
     <form method="dialog" class="dialog-card compact" id="settingsForm">
       <div class="dialog-head"><div><span class="section-label">DEMO ACCESS</span><h2>Operator key</h2></div><button value="cancel" aria-label="Close">×</button></div>
-      <p>State-changing controls require the deployment's operator key. It stays in this browser only.</p>
-      <label>Operator key<input id="adminToken" type="password" autocomplete="off" placeholder="Paste operator key"></label>
+      <p>State-changing controls require a key. It stays in this browser only and is never sent anywhere except this deployment.</p>
+      <div class="judge-note">
+        <strong>Reviewing this project?</strong>
+        <p>Use the shared demo key <code id="demoKey">watchtower-judge-demo</code> to run the full loop yourself: inject an anomaly, watch the four agents, then approve or dismiss it.</p>
+        <p class="judge-note-limit">Rate limited so a public key cannot run up model cost. Approving records a decision — it never executes anything.</p>
+        <button type="button" id="useDemoKey" class="ghost-button">Use demo key</button>
+      </div>
+      <label>Key<input id="adminToken" type="password" autocomplete="off" placeholder="Paste a key"></label>
       <div class="dialog-actions"><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save locally</button></div>
     </form>
   </dialog>

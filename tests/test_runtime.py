@@ -70,7 +70,7 @@ async def test_full_runtime_creates_pending_human_decision() -> None:
         agents=StubAgents(),
     )
     await runtime.initialize()
-    runtime.inject(
+    await runtime.inject(
         AnomalyInjectionRequest(
             kind=AnomalyKind.BUFFER_SPIKE,
             title_id="aurora-drift",

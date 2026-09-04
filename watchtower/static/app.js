@@ -117,6 +117,7 @@ function relativeTime(value) { const seconds = Math.max(0, (Date.now() - new Dat
 el("openInjectButton").addEventListener("click", () => el("injectDialog").showModal());
 el("settingsButton").addEventListener("click", () => { el("adminToken").value = token(); el("settingsDialog").showModal(); });
 el("injectForm").addEventListener("submit", inject);
+el("useDemoKey")?.addEventListener("click", () => { el("adminToken").value = el("demoKey").textContent.trim(); });
 el("settingsForm").addEventListener("submit", event => { event.preventDefault(); sessionStorage.setItem("watchtower-admin-token", el("adminToken").value.trim()); el("settingsDialog").close(); toast("Operator key saved for this browser session."); });
 el("incidentDialog").addEventListener("click", event => { if (event.target === el("incidentDialog")) el("incidentDialog").close(); });
 refresh(); setInterval(refresh, 15000);

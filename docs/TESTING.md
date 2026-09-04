@@ -111,6 +111,23 @@ curl https://watchtower-283557821298.us-central1.run.app/api/dashboard
 The service scales to zero, so the first request after an idle period takes roughly 30 seconds while
 readiness reports `503`. That is the designed startup contract, not a fault.
 
+### Run the whole loop yourself with the demo key
+
+```bash
+BASE=https://watchtower-283557821298.us-central1.run.app
+KEY=watchtower-judge-demo
+
+curl -s -X POST -H 'Content-Type: application/json' -H "X-Watchtower-Token: $KEY"   -d '{"kind":"ad_failure","title_id":"copper-tide","region":"South Asia","duration_cycles":4,"magnitude":0.8}'   $BASE/api/admin/inject
+
+curl -s -X POST -H 'Content-Type: application/json' -H "X-Watchtower-Token: $KEY" -d '{}' $BASE/api/admin/tick
+curl -s $BASE/api/dashboard
+```
+
+Arming a simulation writes the anomaly across the live detection window, so the next pass detects it
+immediately rather than averaging it away. Four Gemini stages then run — expect roughly 25 seconds.
+
+Starting an investigation is rate limited on the shared key. Approving and dismissing are not.
+
 ### Confirm the human approval boundary from the open internet
 
 The most important property of this system is that anyone may *observe* it and nobody may *control*

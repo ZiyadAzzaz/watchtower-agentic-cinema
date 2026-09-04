@@ -99,4 +99,4 @@ def test_repository_construction_opens_no_connection(monkeypatch) -> None:
             _env_file=None,
         )
     )
-    assert repository._client is None
+    assert getattr(repository._local, "client", None) is None
