@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     watchtower_demo_token: SecretStr | None = None
     watchtower_demo_rate_limit: int = Field(default=10, ge=1, le=100)
     watchtower_demo_rate_window_seconds: int = Field(default=600, ge=30, le=3600)
+    # A published key is discoverable, so the day's model spend is capped too.
+    watchtower_demo_daily_limit: int = Field(default=80, ge=1, le=5000)
 
     clickhouse_host: str = "localhost"
     clickhouse_port: int = Field(default=8123, ge=1, le=65535)

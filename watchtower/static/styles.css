@@ -89,3 +89,8 @@ dialog { width: min(560px, calc(100% - 30px)); padding: 0; border: 0; border-rad
 .agent-step.working { border-color: var(--amber); background: rgba(245,180,80,.06); }
 .agent-step.working i { color: var(--amber); animation: railPulse 1s ease-in-out infinite; }
 .agent-step.working span { color: var(--amber); }
+.judge-note summary { cursor: pointer; font-size: 11px; color: var(--cyan); list-style: none; padding: 2px 0; }
+.judge-note summary::-webkit-details-marker { display: none; }
+.judge-note summary::before { content: "▸ "; }
+.judge-note[open] summary::before { content: "▾ "; }
+.judge-note[open] summary { margin-bottom: 8px; }

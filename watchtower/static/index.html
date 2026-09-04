@@ -110,12 +110,12 @@
     <form method="dialog" class="dialog-card compact" id="settingsForm">
       <div class="dialog-head"><div><span class="section-label">DEMO ACCESS</span><h2>Operator key</h2></div><button value="cancel" aria-label="Close">×</button></div>
       <p>State-changing controls require a key. It stays in this browser only and is never sent anywhere except this deployment.</p>
-      <div class="judge-note">
-        <strong>Reviewing this project?</strong>
-        <p>Use the shared demo key <code id="demoKey">watchtower-judge-demo</code> to run the full loop yourself: inject an anomaly, watch the four agents, then approve or dismiss it.</p>
-        <p class="judge-note-limit">Rate limited so a public key cannot run up model cost. Approving records a decision — it never executes anything.</p>
-        <button type="button" id="useDemoKey" class="ghost-button">Use demo key</button>
-      </div>
+      <details class="judge-note">
+        <summary>Reviewing this project? Get the review key</summary>
+        <p>The shared review key is <code id="demoKey">watchtower-judge-demo</code>. It runs the full loop: arm an anomaly, watch the four agents, then approve or dismiss.</p>
+        <p class="judge-note-limit">It is separate from this deployment&rsquo;s operator key. Starting an investigation is rate limited and capped daily so a public key cannot run up model cost; recording a decision never is. It reaches four endpoints, can neither read nor delete anything, and no execution tool exists anywhere in the system.</p>
+        <button type="button" id="useDemoKey" class="ghost-button">Fill it in</button>
+      </details>
       <label>Key<input id="adminToken" type="password" autocomplete="off" placeholder="Paste a key"></label>
       <div class="dialog-actions"><button value="cancel" class="ghost-button">Cancel</button><button type="submit" class="primary-button">Save locally</button></div>
     </form>

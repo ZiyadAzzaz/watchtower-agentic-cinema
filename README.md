@@ -37,24 +37,28 @@ readiness reports `503`.
 > WatchTower never executes an operational recommendation. Approval records a human decision; it
 > does not call a CDN, ad platform, playback system, or other downstream service.
 
-![WatchTower dashboard: live telemetry and the four-stage agent pipeline](docs/images/01-dashboard-hero.png)
+![WatchTower dashboard: the release-night view with the agent pipeline running](docs/images/01-dashboard-hero.png)
 
-Four specialized agents turn live delivery telemetry into a quantified, evidence-led action — then
-stop for a human decision. The pipeline is event-gated: Gemini is not called on every tick.
+![The four agents mid-investigation: Detector complete, Root-Cause querying ClickHouse through MCP](docs/images/02-agents-working.png)
 
-![Live signal chart and the guardrail panel](docs/images/02-live-signal.png)
+**You watch the agents work.** Each stage reports as it finishes, names the title and region it is
+working on, and says what it is doing right now. Then the pipeline stops. The Action Drafter holds no
+execution tool — approving records a human decision and calls nothing downstream.
 
-Every reading comes from ClickHouse. Agents reach the data only through the official read-only
-`mcp-clickhouse` server, and the action agent has no execution tool of any kind.
+![Live signal chart and the guardrail panel](docs/images/03-live-signal.png)
 
-![Incident queue showing a buffer spike with quantified impact awaiting approval](docs/images/03-incident-queue.png)
+Every reading comes from ClickHouse. Agents reach it only through the official read-only
+`mcp-clickhouse` server, behind middleware that rejects mutations, comments, multiple statements and
+unbounded results.
 
-An incident is a decision, not an alert. Each one carries a root cause traced to a specific CDN node,
-an estimated dollar impact, and lost viewer-hours — and waits for a person.
+![Incident queue: buffer spikes, view drops and ad failures with quantified impact awaiting approval](docs/images/04-incident-queue.png)
 
-![The twelve original fictional titles with code-native gradient artwork](docs/images/04-fictional-catalog.png)
+An incident is a decision, not an alert. Each carries a root cause traced to a named CDN node, lost
+viewer-hours, and dollars at risk — and waits for a person.
 
-All twelve titles, descriptions, and covers are original and fictional. The artwork is generated from
+![The twelve original fictional titles with code-native gradient artwork](docs/images/05-fictional-catalog.png)
+
+All twelve titles, descriptions and covers are original and fictional. The artwork is generated from
 CSS gradients in code — there is no third-party media data, poster art, or external image request
 anywhere in the product.
 
@@ -199,7 +203,10 @@ python -m pytest tests/test_clickhouse_integration.py -m integration -vv
 `tests/test_production_contract.py` pins every defect that once reached a live Cloud Run revision,
 and asserts that no execution tool exists anywhere in the runtime.
 
-**[docs/TESTING.md](docs/TESTING.md) is the full guide** — five levels, from a five-second lint to
+**[docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) explains every control on the dashboard** — what each
+number means, what each dropdown does, and what happens when you click.
+
+**[docs/TESTING.md](docs/TESTING.md) is the full verification guide** — five levels, from a five-second lint to
 verifying the human approval boundary against the public deployment, with what each one proves.
 
 ## Configuration

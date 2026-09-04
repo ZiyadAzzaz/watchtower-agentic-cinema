@@ -187,3 +187,34 @@ def test_a_decision_still_needs_a_valid_key() -> None:
     with client_for() as client:
         assert decide(client, None).status_code == 401
         assert decide(client, "wrong").status_code == 401
+
+
+def test_a_daily_ceiling_bounds_the_published_key() -> None:
+    """A published key is discoverable, so the day's model spend is capped."""
+    with client_for(
+        watchtower_demo_rate_limit=100,
+        watchtower_demo_rate_window_seconds=600,
+        watchtower_demo_daily_limit=3,
+    ) as client:
+        for _ in range(3):
+            assert tick(client, DEMO).status_code == 200
+        blocked = tick(client, DEMO)
+        assert blocked.status_code == 429
+        assert "daily ceiling" in blocked.json()["detail"]
+
+
+def test_the_daily_ceiling_never_applies_to_the_operator() -> None:
+    with client_for(watchtower_demo_daily_limit=1) as client:
+        assert tick(client, DEMO).status_code == 200
+        assert tick(client, DEMO).status_code == 429
+        for _ in range(4):
+            assert tick(client, OPERATOR).status_code == 200
+
+
+def test_the_daily_ceiling_never_blocks_a_decision() -> None:
+    """A judge must always be able to finish the loop they started."""
+    with client_for(watchtower_demo_daily_limit=1) as client:
+        assert tick(client, DEMO).status_code == 200
+        assert tick(client, DEMO).status_code == 429
+        for _ in range(4):
+            assert decide(client, DEMO).status_code != 429

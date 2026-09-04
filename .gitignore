@@ -31,3 +31,6 @@ evidence/
 
 # Full-page capture used to produce docs/images; source asset, not product source.
 docs/watch-tower.pdf
+
+# Full-page captures used to produce docs/images; source assets, not product source.
+docs/watch-tower*.pdf
