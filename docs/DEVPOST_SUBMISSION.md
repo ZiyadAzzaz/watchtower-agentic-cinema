@@ -19,6 +19,25 @@ viewer-hours, and stop for a human to decide.
 - Source code: <https://github.com/ZiyadAzzaz/watchtower-agentic-cinema>
 - Demo video: `[PUBLIC_VIDEO_URL]`
 
+## Testing instructions for judges
+
+The dashboard is open to everyone — no sign-up, no account. To run the full decision loop yourself:
+
+1. Open the live application. It scales to zero, so the first load takes about 30 seconds.
+2. Click the **⌘** button in the top bar, expand *Reviewing this project?*, and press **Fill it in**.
+   The shared review key is `watchtower-judge-demo`.
+3. Press **＋ Simulate incident**, choose any fictional title, region and failure type, then
+   **Arm simulation**.
+4. Watch the agent rail: four Gemini agents investigate in real time, roughly 20–30 seconds.
+5. Open the resulting incident and **approve** or **dismiss** it.
+
+The review key is separate from the deployment's operator credential, which stays in Google Secret
+Manager. It reaches four endpoints, the database identity behind it can only read and insert, and no
+execution tool exists anywhere in the system — approving records a human decision and calls nothing
+downstream. Starting an investigation is rate limited; recording a decision never is.
+
+`docs/WALKTHROUGH.md` in the repository explains every control on the dashboard.
+
 ## Who it is for
 
 The distribution and release-operations crew at a studio or streamer — the people on the launch
