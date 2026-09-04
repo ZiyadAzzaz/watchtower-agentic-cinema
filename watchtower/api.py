@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import hmac
+import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from uuid import UUID
 
@@ -22,6 +24,8 @@ from watchtower.repository import ClickHouseRepository
 from watchtower.runtime import WatchtowerRuntime
 
 STATIC_DIR = Path(__file__).parent / "static"
+LOGGER = logging.getLogger(__name__)
+INITIALIZATION_ATTEMPTS = 6
 
 
 def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
@@ -37,10 +41,47 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
             )
         else:
             app.state.runtime = runtime
-        await app.state.runtime.initialize()
+        app.state.initialization_error = None
+        app.state.initialization_task = None
+        if app.state.runtime.settings.is_production:
+            # Cloud Run must begin listening before a sleeping remote datastore
+            # finishes waking. Readiness and operational endpoints remain closed
+            # until initialization completes successfully.
+            async def initialize_runtime() -> None:
+                # A scaled-to-zero ClickHouse Cloud service can take minutes to
+                # wake, so the first connection attempts are retried instead of
+                # failing the deployment.
+                delay = 5.0
+                for attempt in range(1, INITIALIZATION_ATTEMPTS + 1):
+                    try:
+                        await app.state.runtime.initialize()
+                        app.state.initialization_error = None
+                        return
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception as exc:
+                        app.state.initialization_error = exc
+                        LOGGER.exception(
+                            "WatchTower runtime initialization failed (attempt %s/%s)",
+                            attempt,
+                            INITIALIZATION_ATTEMPTS,
+                        )
+                        if attempt == INITIALIZATION_ATTEMPTS:
+                            return
+                        await asyncio.sleep(delay)
+                        delay = min(delay * 2, 30.0)
+
+            app.state.initialization_task = asyncio.create_task(initialize_runtime())
+        else:
+            await app.state.runtime.initialize()
         try:
             yield
         finally:
+            task = app.state.initialization_task
+            if task is not None and not task.done():
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
             await app.state.runtime.close()
 
     app = FastAPI(
@@ -68,6 +109,12 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
         return response
 
     def get_runtime(request: Request) -> WatchtowerRuntime:
+        task = request.app.state.initialization_task
+        if task is not None:
+            if not task.done():
+                raise HTTPException(status_code=503, detail="Runtime is initializing")
+            if request.app.state.initialization_error is not None:
+                raise HTTPException(status_code=503, detail="Runtime initialization failed")
         return request.app.state.runtime
 
     def require_admin(
@@ -101,12 +148,19 @@ def create_app(runtime: WatchtowerRuntime | None = None) -> FastAPI:
     async def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 
+    # Cloud Run's serverless frontend answers the exact path "/healthz" itself,
+    # so the same handler is also published under a non-reserved path.
     @app.get("/healthz", include_in_schema=False)
+    @app.get("/health", include_in_schema=False)
+    @app.get("/api/healthz", include_in_schema=False)
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": "watchtower"}
 
     @app.get("/readyz", include_in_schema=False)
-    async def readiness(active_runtime: WatchtowerRuntime = Depends(get_runtime)) -> dict[str, str]:
+    @app.get("/ready", include_in_schema=False)
+    @app.get("/api/readyz", include_in_schema=False)
+    async def readiness(request: Request) -> dict[str, str]:
+        active_runtime = get_runtime(request)
         return {"status": active_runtime.status().status}
 
     @app.get("/api/dashboard")

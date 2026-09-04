@@ -7,7 +7,7 @@ from typing import Any
 from uuid import UUID
 
 from watchtower.agents import AgentPipeline
-from watchtower.catalog import TITLE_BY_ID
+from watchtower.catalog import REGIONS, TITLE_BY_ID
 from watchtower.config import Settings
 from watchtower.detection import Detector
 from watchtower.generator import SyntheticEventGenerator
@@ -48,15 +48,26 @@ class WatchtowerRuntime:
 
     async def initialize(self) -> None:
         await asyncio.to_thread(self.repository.initialize)
-        count = await asyncio.to_thread(self.repository.event_count)
-        minimum_seed = len(TITLE_BY_ID) * 5 * 20
-        if count < minimum_seed:
-            await asyncio.to_thread(
-                self.generator.seed_history,
-                self.settings.watchtower_baseline_minutes
-                + self.settings.watchtower_lookback_minutes
-                + 2,
-            )
+        await self.ensure_baseline_history()
+
+    async def ensure_baseline_history(self) -> bool:
+        """Seed history whenever the detection baseline window is thin.
+
+        Detection compares a live window against the preceding baseline window,
+        so total row count is not a useful signal: telemetry stored days ago
+        leaves both windows empty after the service has been idle.
+        """
+        history_minutes = (
+            self.settings.watchtower_baseline_minutes
+            + self.settings.watchtower_lookback_minutes
+            + 2
+        )
+        recent = await asyncio.to_thread(self.repository.recent_event_count, history_minutes)
+        minimum_seed = len(TITLE_BY_ID) * len(REGIONS) * 20
+        if recent >= minimum_seed:
+            return False
+        await asyncio.to_thread(self.generator.seed_history, history_minutes)
+        return True
 
     async def close(self) -> None:
         close = getattr(self.mcp, "close", None)
@@ -79,6 +90,9 @@ class WatchtowerRuntime:
                 < self.settings.watchtower_detection_interval_seconds
             ):
                 return []
+            # Self-heal after an idle gap so a judge always sees a usable
+            # baseline instead of an empty detection window.
+            await self.ensure_baseline_history()
             await asyncio.to_thread(self.generator.tick)
             self.last_tick_at = datetime.now(UTC)
             self._last_tick_clock = now_clock

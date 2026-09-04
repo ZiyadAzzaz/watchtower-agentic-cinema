@@ -25,7 +25,7 @@ individually, not at project scope.
 
 ```powershell
 .\scripts\deploy-cloud-run.ps1 `
-  -Image us-central1-docker.pkg.dev/watchtower-507216/watchtower/app:VERSION `
+  -Image us-central1-docker.pkg.dev/watchtower-507216/watchtower/watchtower:VERSION `
   -ClickHouseHost YOUR_SERVICE.clickhouse.cloud
 ```
 
@@ -41,3 +41,12 @@ default command.
 The deployment uses request-based Cloud Run billing, min instances 0, max instances 1, concurrency
 20, 1 vCPU, and 512 MiB. The application refuses production startup if TLS verification, Vertex AI,
 the operator token, scoped credentials, or the exact project ID are missing.
+
+Production remote initialization runs after the process begins listening. `/healthz` confirms that
+the web process is alive; `/readyz` and operational APIs return HTTP 503 until ClickHouse
+initialization succeeds. Use [POST_ACCESS_RUNBOOK.md](POST_ACCESS_RUNBOOK.md) for the exact private
+build, deployment, authentication, incident, policy, and CI verification sequence.
+
+> On Cloud Run use `/health` or `/api/healthz`: Google's serverless frontend answers the exact
+> path `/healthz` itself, so that request never reaches the container. All three paths are the
+> same handler, and `/readyz`, `/ready`, and `/api/readyz` are likewise equivalent.

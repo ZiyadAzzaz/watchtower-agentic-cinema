@@ -7,8 +7,8 @@ approve or dismiss.
 
 Built from scratch for **Agentic Cinema: The Blockbuster Hackathon — ClickHouse Track**.
 
-> WatchTower never executes an operational recommendation. Approval records a human decision;
-> it does not call a CDN, ad platform, or playback system.
+> WatchTower never executes an operational recommendation. Approval records a human decision; it
+> does not call a CDN, ad platform, playback system, or other downstream service.
 
 ## Why it is different
 
@@ -34,45 +34,91 @@ flowchart LR
     H -->|approve or dismiss only| Q[(Incident decision)]
 ```
 
-The ingestion identity can `SELECT`/`INSERT` only. The separate MCP identity can `SELECT` only.
+The ingestion identity can `SELECT` and `INSERT` only. The separate MCP identity can `SELECT` only.
 The in-process MCP middleware additionally blocks mutations, comments, multiple statements,
-unbounded results, and access outside the WatchTower tables. The MCP endpoint is stdio inside the
-container and is never exposed to the network.
+unbounded results, and access outside the WatchTower tables. MCP uses stdio inside the container and
+is never exposed to the network.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the detailed data and trust model.
+See [the architecture and trust model](docs/ARCHITECTURE.md) for the full operating sequence.
 
-## Quick start
+## Quick start: self-contained Docker demo
 
-Prerequisites: Docker Desktop and Docker Compose.
+Prerequisites: Git, Docker Desktop, and Docker Compose v2.
 
 ```bash
-docker compose up --build
+git clone https://github.com/ZiyadAzzaz/watchtower-agentic-cinema.git
+cd watchtower-agentic-cinema
+docker compose up --build -d
+docker compose ps
 ```
 
-Open <http://localhost:8080>. The compose stack creates a local ClickHouse service, two scoped
-users, schema, historical baseline, and the web application. Local telemetry works without an AI
-credential. To run Gemini-backed incident narration locally, authenticate Application Default
-Credentials and keep `GOOGLE_CLOUD_PROJECT=watchtower-507216`.
+Open <http://localhost:8080> after both containers are healthy. The stack creates a local ClickHouse
+service, two scoped database users, the schema, historical baseline, and the application. No `.env`
+file or cloud account is required for this path.
 
-Enter `local-demo-only` under Operator access before injecting an incident or recording a human
-decision. This credential is strictly for the loopback-only local demo. Production always requires
-a separately generated `WATCHTOWER_ADMIN_TOKEN` supplied through Secret Manager.
+Open the top-right demo access settings and save `local-demo-only` before injecting an incident or
+recording a decision. This value is strictly for the loopback-only local stack. Production uses an
+independent random operator token from Secret Manager.
 
-### Python development
+The self-contained Docker container deliberately does not inherit host Google credentials. It
+exercises the real local data, detection, impact, dashboard, and approval path; development mode
+clearly falls back if Gemini is unavailable. Use the next section for real Vertex AI execution.
+
+Stop containers while preserving the local database volume:
+
+```bash
+docker compose stop
+```
+
+Run `docker compose down -v` only when you intentionally want to delete all local WatchTower data.
+
+## Python development with real Gemini
+
+WatchTower supports Python 3.12 and 3.13. These commands use the project environment name from the
+reference development setup:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e '.[dev]'
+conda create -n watch-tower python=3.12 -y
+conda activate watch-tower
+python -m pip install -e '.[dev]'
 docker compose up -d clickhouse
-.\.venv\Scripts\uvicorn.exe watchtower.api:app --reload
+Copy-Item .env.example .env
 ```
 
-Copy `.env.example` to `.env` and use the local credentials from `docker-compose.yml`.
+Set the following non-production values in the Git-ignored `.env`:
 
-### ClickHouse Cloud bootstrap
+```dotenv
+WATCHTOWER_ENV=development
+WATCHTOWER_BOOTSTRAP_SCHEMA=false
+WATCHTOWER_ADMIN_TOKEN=local-demo-only
+CLICKHOUSE_HOST=localhost
+CLICKHOUSE_PORT=8123
+CLICKHOUSE_DATABASE=watchtower
+CLICKHOUSE_USER=watchtower_app
+CLICKHOUSE_PASSWORD=local-app-only
+CLICKHOUSE_MCP_USER=watchtower_mcp
+CLICKHOUSE_MCP_PASSWORD=local-mcp-only
+CLICKHOUSE_SECURE=false
+CLICKHOUSE_VERIFY=false
+```
 
-After placing a rotated `default` credential and the TLS Cloud endpoint in the Git-ignored `.env`,
-run the one-time bootstrap:
+Authenticate to a project where you are authorized to use Vertex AI. The competition deployment
+uses `watchtower-507216`; an external contributor may use their own Vertex-enabled project in
+development mode.
+
+```powershell
+gcloud auth application-default login
+gcloud auth application-default set-quota-project YOUR_VERTEX_PROJECT_ID
+python -m uvicorn watchtower.api:app --host 127.0.0.1 --port 8080
+```
+
+Also set `GOOGLE_CLOUD_PROJECT=YOUR_VERTEX_PROJECT_ID`, `GOOGLE_CLOUD_LOCATION=us-central1`, and
+`GOOGLE_GENAI_USE_VERTEXAI=true` in `.env`. Never commit `.env` or paste credentials into an issue.
+
+## ClickHouse Cloud bootstrap
+
+This is an administrator-only, one-time operation. Place a rotated temporary administrator
+credential and the TLS endpoint in the Git-ignored `.env`, then run:
 
 ```powershell
 conda activate watch-tower
@@ -81,36 +127,32 @@ python scripts/verify_clickhouse_cloud.py
 python scripts/verify_vertex_gemini.py
 ```
 
-The bootstrap creates the schema, inserts the fictional catalog, generates independent
+The bootstrap creates the WatchTower schema, inserts the fictional catalog, generates independent
 `watchtower_app` and `watchtower_mcp` credentials, limits their grants, and replaces the temporary
-admin credential in `.env`. It never prints a secret. The verification scripts use unique synthetic
-scopes and do not delete Cloud data.
+administrator credential in `.env`. It never prints a secret. Verification uses unique synthetic
+scopes and does not delete cloud data.
 
 ## Verification
 
-Fast quality gate (no external services):
+Fast quality gate without external services:
 
 ```powershell
-.\.venv\Scripts\ruff.exe format --check watchtower tests
-.\.venv\Scripts\ruff.exe check watchtower tests
-.\.venv\Scripts\python.exe -m pytest --cov=watchtower
+conda activate watch-tower
+python -m ruff format --check watchtower tests scripts
+python -m ruff check watchtower tests scripts
+python -m pytest --cov=watchtower --cov-report=term-missing
 ```
 
-Real ClickHouse + official MCP integration (requires the local ClickHouse container):
+Real ClickHouse and official MCP integration, requiring the local ClickHouse container:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_clickhouse_integration.py -m integration -vv
+python -m pytest tests/test_clickhouse_integration.py -m integration -vv
 ```
 
-The integration test proves:
-
-1. synthetic events are written to real ClickHouse;
-2. detection and root-cause queries run through official `mcp-clickhouse`;
-3. the planted CDN anomaly becomes a pending incident; and
-4. a destructive query is rejected.
-
-The two Cloud verification scripts additionally prove verified TLS, scoped Cloud identities, real
-Vertex AI Gemini execution in `watchtower-507216`, all four ADK stages, in-agent MCP evidence calls,
+The integration test proves that synthetic events reach real ClickHouse, detection and root-cause
+queries run through official `mcp-clickhouse`, the planted anomaly becomes a pending incident, and a
+destructive query is rejected. The cloud verification scripts additionally prove verified TLS,
+scoped identities, real Vertex AI Gemini execution, all four ADK stages, in-agent MCP evidence calls,
 and human-gated structured output.
 
 ## Configuration
@@ -118,55 +160,83 @@ and human-gated structured output.
 | Variable | Purpose | Production rule |
 |---|---|---|
 | `GOOGLE_CLOUD_PROJECT` | Vertex AI project | Must equal `watchtower-507216` |
-| `GOOGLE_CLOUD_LOCATION` | Vertex AI / Cloud Run region | `us-central1` by default |
+| `GOOGLE_CLOUD_LOCATION` | Vertex AI and Cloud Run region | `us-central1` by default |
+| `GOOGLE_GENAI_USE_VERTEXAI` | Selects Vertex AI | Must be `true` |
 | `WATCHTOWER_AGENT_MODEL` | ADK Gemini model | `gemini-2.5-flash` |
-| `WATCHTOWER_ADMIN_TOKEN` | Protects injection and decisions | Required; store in Secret Manager |
+| `WATCHTOWER_ADMIN_TOKEN` | Protects injection and decisions | Required; Secret Manager only |
 | `WATCHTOWER_BOOTSTRAP_SCHEMA` | Allows schema creation | Must be `false` in production |
 | `CLICKHOUSE_USER/PASSWORD` | Ingestion and incident identity | Scoped `SELECT, INSERT` |
 | `CLICKHOUSE_MCP_USER/PASSWORD` | Official MCP identity | Scoped `SELECT` only |
 | `CLICKHOUSE_SECURE/VERIFY` | Database transport security | Both must be `true` |
 
-No secret belongs in the repository, container image, or Cloud Run environment as plain text.
+No secret belongs in the repository, container image, command output, or Cloud Run environment as
+plain text.
 
-## Cloud Run profile
+## Cloud Run production profile
 
-The intended service profile is deliberately cost-constrained:
+The guarded deployment profile is deliberately cost-constrained:
 
-- project: `watchtower-507216` only;
-- region: `us-central1`;
-- request-based billing, minimum instances `0`;
+- fixed project `watchtower-507216` and region `us-central1`;
+- private by default; public release requires a separate switch and approval;
+- request-based billing with minimum instances `0`;
 - maximum instances `1`, concurrency `20`;
-- 1 vCPU / 512 MiB;
-- ClickHouse and operator credentials from Secret Manager;
-- a dedicated runtime service account with Vertex AI User and secret accessor only.
+- 1 vCPU, 512 MiB memory, and a 120-second request timeout;
+- credentials supplied from Secret Manager;
+- dedicated runtime service account with Vertex AI User and access to only three named secrets.
 
-Deployment is blocked by configuration validation if another Google Cloud project is supplied,
-Vertex AI is disabled, ClickHouse TLS verification is off, the operator token is absent, or the
-runtime identity is allowed to create schema.
+Production validation refuses another project, non-Vertex AI mode, unverified ClickHouse transport,
+missing credentials, or schema-bootstrap permission. The process listens before a sleeping remote
+datastore finishes waking: `/healthz` proves the web process is alive, while `/readyz` and all
+operational APIs return HTTP 503 until initialization succeeds.
+
+> On Cloud Run use `/health` or `/api/healthz`: Google's serverless frontend answers the exact
+> path `/healthz` itself, so that request never reaches the container. All three paths are the
+> same handler, and `/readyz`, `/ready`, and `/api/readyz` are likewise equivalent.
+
+See [the guarded deployment guide](docs/DEPLOYMENT.md) and
+[the post-access execution runbook](docs/POST_ACCESS_RUNBOOK.md).
 
 ## Cost guardrails
 
-The Google Cloud project has a project-scoped **$80 gross-cost budget** beginning August 31, 2026,
-with current-spend alerts at **$25, $50, $75, and $80**. Credits are excluded from the calculation,
-so alerts reflect resource cost rather than hiding it behind promotional credit. Budget alerts do
-not themselves stop services; WatchTower therefore also uses scale-to-zero and a one-instance cap.
+The Google Cloud project has an $80 gross-cost budget with actual-spend alerts at $25, $50, $75, and
+$80. Credits are excluded from the calculation. Budget notifications are not an automatic hard cap,
+so the deployment also uses scale-to-zero, one maximum instance, and event-gated Gemini.
 
-No payment method, billing link, or unrelated project is modified by this repository.
+ClickHouse Cloud account billing controls are owner-managed. See
+[the standalone billing action](docs/CLICKHOUSE_BILLING_ALERTS.md) for the required $100, $200, and
+$300 checkpoints.
+
+No script changes a payment method, billing-account link, or unrelated project.
 
 ## Demo and submission material
 
 - [Three-minute demo runbook](docs/DEMO_SCRIPT.md)
-- [Devpost submission copy](docs/DEVPOST_SUBMISSION.md)
-- [Implementation and trust architecture](docs/ARCHITECTURE.md)
-- [Guarded Cloud Run deployment](docs/DEPLOYMENT.md)
-- [Current project report](PROJECT_REPORT.md)
+- [Paste-ready Devpost copy](docs/DEVPOST_SUBMISSION.md)
+- [Architecture and trust model](docs/ARCHITECTURE.md)
+- [Guarded production deployment](docs/DEPLOYMENT.md)
+- [Current professional project report](PROJECT_REPORT.md)
 
-## Transparency
+## Transparency and contest compliance
 
-Telemetry is synthetic because private streaming-platform operational data is not available for a
-public hackathon. Detection, correlation, impact estimation, MCP access, ADK orchestration, and the
-human decision boundary are real. The dashboard labels the catalog as fictional and never uses a
-real title, poster, studio asset, or media database.
+Telemetry is synthetic because private streaming-platform data is unavailable and inappropriate for
+a public hackathon. Detection, correlation, impact estimation, MCP access, ADK orchestration, and the
+human decision boundary are real. The dashboard labels the catalog as fictional and uses no real
+title, poster, studio asset, media database, or third-party media.
+
+The shipped runtime imports Google ADK and Google Gen AI only. It contains no OpenAI, Anthropic, or
+other non-Google model SDK. A passing policy test enforces this restriction.
+
+## Troubleshooting
+
+- **Dashboard says Telemetry unavailable:** wait for ClickHouse to become healthy, then inspect
+  `docker compose logs clickhouse app`.
+- **Mutation returns HTTP 401:** save `local-demo-only` in Operator access for the local stack.
+- **Gemini is not used in Docker:** run the application from the authenticated host-Python
+  environment; the container does not inherit host ADC by design.
+- **Port already in use:** stop the process using local port 8080 or 8123. Do not expose the compose
+  services on a public interface.
+- **Cloud `/healthz` passes but `/readyz` is 503:** the process is alive but remote initialization is
+  pending or failed. Inspect only the WatchTower revision's logs.
 
 ## License
 

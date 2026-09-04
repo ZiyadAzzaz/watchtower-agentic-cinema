@@ -5,13 +5,15 @@ import json
 import os
 import sys
 from collections.abc import Sequence
-from contextlib import AsyncExitStack
+from contextlib import AsyncExitStack, suppress
 from typing import Any, Protocol
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from watchtower.config import Settings
+
+_QueryRequest = tuple[str, "asyncio.Future[Any]"]
 
 
 class QueryExecutor(Protocol):
@@ -23,8 +25,8 @@ class OfficialClickHouseMcpClient:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._stack: AsyncExitStack | None = None
-        self._session: ClientSession | None = None
+        self._requests: asyncio.Queue[_QueryRequest | None] | None = None
+        self._worker: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
 
     def _environment(self) -> dict[str, str]:
@@ -50,9 +52,10 @@ class OfficialClickHouseMcpClient:
         return env
 
     async def query(self, sql: str) -> list[dict[str, Any]]:
-        async with self._lock:
-            session = await self._get_session()
-            response = await session.call_tool("run_query", {"query": sql})
+        requests = await self._ensure_worker()
+        future: asyncio.Future[Any] = asyncio.get_running_loop().create_future()
+        await requests.put((sql, future))
+        response = await future
         if response.isError:
             text = self._text_content(response.content)
             raise RuntimeError(f"mcp-clickhouse rejected the analytics query: {text}")
@@ -64,32 +67,93 @@ class OfficialClickHouseMcpClient:
             return self._coerce_rows(structured)
         return []
 
-    async def _get_session(self) -> ClientSession:
-        if self._session is not None:
-            return self._session
+    async def _ensure_worker(self) -> asyncio.Queue[_QueryRequest | None]:
+        async with self._lock:
+            if self._worker is not None and not self._worker.done():
+                assert self._requests is not None
+                return self._requests
+            requests: asyncio.Queue[_QueryRequest | None] = asyncio.Queue()
+            started: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+            worker = asyncio.create_task(self._serve(requests, started))
+            try:
+                await started
+            except BaseException:
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
+                raise
+            self._requests = requests
+            self._worker = worker
+            return requests
+
+    async def _serve(
+        self,
+        requests: asyncio.Queue[_QueryRequest | None],
+        started: asyncio.Future[None],
+    ) -> None:
+        """Own the stdio session for its whole lifetime.
+
+        The MCP stdio client opens an anyio task group, which may only be
+        entered and exited by one task. Serving every query from this single
+        task keeps that contract while still serialising access to the server.
+        """
         server = StdioServerParameters(
             command=sys.executable,
             args=["-m", "mcp_clickhouse.main"],
             env=self._environment(),
         )
-        stack = AsyncExitStack()
         try:
-            read_stream, write_stream = await stack.enter_async_context(stdio_client(server))
-            session = await stack.enter_async_context(ClientSession(read_stream, write_stream))
-            await session.initialize()
-        except BaseException:
-            await stack.aclose()
+            async with AsyncExitStack() as stack:
+                read_stream, write_stream = await stack.enter_async_context(stdio_client(server))
+                session = await stack.enter_async_context(ClientSession(read_stream, write_stream))
+                await session.initialize()
+                if not started.done():
+                    started.set_result(None)
+                while True:
+                    item = await requests.get()
+                    if item is None:
+                        return
+                    sql, future = item
+                    try:
+                        result = await session.call_tool("run_query", {"query": sql})
+                    except BaseException as exc:
+                        if not future.done():
+                            future.set_exception(exc)
+                        raise
+                    if not future.done():
+                        future.set_result(result)
+        except BaseException as exc:
+            if not started.done():
+                started.set_exception(exc)
             raise
-        self._stack = stack
-        self._session = session
-        return session
+        finally:
+            self._drain(requests)
+
+    @staticmethod
+    def _drain(requests: asyncio.Queue[_QueryRequest | None]) -> None:
+        while True:
+            try:
+                item = requests.get_nowait()
+            except asyncio.QueueEmpty:
+                return
+            if item is not None and not item[1].done():
+                item[1].set_exception(RuntimeError("mcp-clickhouse session closed"))
 
     async def close(self) -> None:
         async with self._lock:
-            if self._stack is not None:
-                await self._stack.aclose()
-            self._stack = None
-            self._session = None
+            worker, requests = self._worker, self._requests
+            self._worker = None
+            self._requests = None
+        if worker is None:
+            return
+        if requests is not None:
+            await requests.put(None)
+        with suppress(asyncio.CancelledError, Exception):
+            await asyncio.wait_for(worker, timeout=10)
+        if not worker.done():
+            worker.cancel()
+            with suppress(asyncio.CancelledError, Exception):
+                await worker
 
     @staticmethod
     def _text_content(content: Sequence[Any]) -> str:

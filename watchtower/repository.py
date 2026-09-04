@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from threading import Lock
 from typing import Any, Protocol
 from uuid import UUID
@@ -17,6 +17,7 @@ class Repository(Protocol):
     def initialize(self) -> None: ...
     def insert_events(self, events: Iterable[TelemetryEvent]) -> int: ...
     def event_count(self) -> int: ...
+    def recent_event_count(self, minutes: int) -> int: ...
     def save_incident(self, incident: Incident) -> None: ...
     def list_incidents(self, limit: int = 30) -> list[Incident]: ...
     def get_incident(self, incident_id: UUID) -> Incident | None: ...
@@ -25,17 +26,34 @@ class Repository(Protocol):
 class ClickHouseRepository:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = clickhouse_connect.get_client(
-            host=settings.clickhouse_host,
-            port=settings.clickhouse_port,
-            username=settings.clickhouse_user,
-            password=settings.clickhouse_password.get_secret_value(),
-            database=settings.clickhouse_database,
-            secure=settings.clickhouse_secure,
-            verify=settings.clickhouse_verify,
-            connect_timeout=10,
-            send_receive_timeout=30,
-        )
+        self._client: Any | None = None
+        self._client_lock = Lock()
+
+    @property
+    def client(self) -> Any:
+        """Connect on first use.
+
+        Cloud Run must bind its port before a possibly idle ClickHouse Cloud
+        service finishes waking, so no network handshake may run while the
+        application is being constructed.
+        """
+        client = self._client
+        if client is not None:
+            return client
+        with self._client_lock:
+            if self._client is None:
+                self._client = clickhouse_connect.get_client(
+                    host=self.settings.clickhouse_host,
+                    port=self.settings.clickhouse_port,
+                    username=self.settings.clickhouse_user,
+                    password=self.settings.clickhouse_password.get_secret_value(),
+                    database=self.settings.clickhouse_database,
+                    secure=self.settings.clickhouse_secure,
+                    verify=self.settings.clickhouse_verify,
+                    connect_timeout=15,
+                    send_receive_timeout=60,
+                )
+            return self._client
 
     def initialize(self) -> None:
         database = self.settings.clickhouse_database
@@ -168,6 +186,16 @@ class ClickHouseRepository:
         )
         return int(result.first_row[0])
 
+    def recent_event_count(self, minutes: int) -> int:
+        window = int(minutes)
+        if window <= 0:
+            raise ValueError("Recency window must be positive.")
+        result = self.client.query(
+            f"SELECT count() FROM {self.settings.clickhouse_database}.telemetry_events "
+            f"WHERE event_time >= now64(3, 'UTC') - INTERVAL {window} MINUTE"
+        )
+        return int(result.first_row[0])
+
     def save_incident(self, incident: Incident) -> None:
         self.client.insert(
             f"{self.settings.clickhouse_database}.incidents",
@@ -241,6 +269,10 @@ class MemoryRepository:
 
     def event_count(self) -> int:
         return len(self.events)
+
+    def recent_event_count(self, minutes: int) -> int:
+        cutoff = datetime.now(UTC) - timedelta(minutes=int(minutes))
+        return sum(1 for event in self.events if event.timestamp >= cutoff)
 
     def save_incident(self, incident: Incident) -> None:
         with self._lock:

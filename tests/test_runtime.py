@@ -111,3 +111,26 @@ async def test_runtime_suppresses_duplicate_open_incident() -> None:
     assert len(await runtime.tick_if_due(force=True)) == 1
     assert await runtime.tick_if_due(force=True) == []
     assert len(repository.list_incidents()) == 1
+
+
+@pytest.mark.asyncio
+async def test_stale_history_is_reseeded() -> None:
+    """Rows stored days ago leave the detection windows empty."""
+    from datetime import timedelta
+
+    repository = MemoryRepository()
+    runtime = WatchtowerRuntime(
+        Settings(watchtower_env="test", _env_file=None),
+        repository,
+        StaticQueryExecutor([]),
+        agents=StubAgents(),
+    )
+    stale = datetime.now(UTC) - timedelta(days=3)
+    repository.insert_events(runtime.generator.generate_cycle(stale) * 40)
+    assert repository.event_count() >= 1200
+    assert repository.recent_event_count(67) == 0
+
+    assert await runtime.ensure_baseline_history() is True
+    assert repository.recent_event_count(67) >= 1200
+    # A fresh baseline must not be re-seeded on the next call.
+    assert await runtime.ensure_baseline_history() is False

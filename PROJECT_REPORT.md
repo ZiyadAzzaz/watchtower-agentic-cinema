@@ -1,141 +1,456 @@
-# WatchTower project report
+# WatchTower — Professional Project and Deployment Report
 
-**Report date:** September 1, 2026
+**Report date:** September 4, 2026
 
-**Google Cloud target:** `watchtower-507216` only
+**Project owner:** Ziyad Azzaz
+
+**Google Cloud project:** `watchtower-507216` only
 
 **Competition:** Agentic Cinema: The Blockbuster Hackathon — ClickHouse Track
 
-## Executive status
+**Repository:** `ZiyadAzzaz/watchtower-agentic-cinema` (private)
 
-WatchTower is implemented and has passed local and Cloud end-to-end demonstrations. ClickHouse
-Cloud now contains the WatchTower schema and fictional catalog, with independent scoped application
-and read-only MCP identities. The complete path is working: synthetic live telemetry, deterministic
-detection, official MCP investigation, quantified impact, four real Gemini/ADK agent stages through
-Vertex AI, and a persisted human approval decision.
+**Current release state:** Product complete and **verified live on private Cloud Run**; awaiting the owner’s explicit public-release approval
 
-Production deployment and public publication are intentionally not represented as complete. The
-private Cloud Run deployment is waiting for explicit authorization to transfer the three local
-runtime secrets to Google Secret Manager. Public service and repository access remain a separate
-release checkpoint.
+## 1. Executive summary
 
-## Completion matrix
+WatchTower is a human-governed streaming incident-intelligence system. It continuously generates and
+stores fictional streaming telemetry, detects operational anomalies using deterministic rules,
+investigates evidence through the official ClickHouse MCP server, calculates business impact, and
+uses a four-stage Google ADK/Gemini workflow to prepare an executive response. Every proposed action
+stops at a visible human approval boundary; the system contains no autonomous remediation tool.
 
-| Area | Status | Evidence |
+The complete application and cloud data path have been independently verified against ClickHouse
+Cloud and Vertex AI in `watchtower-507216`. Three production credentials are now stored in Google
+Secret Manager with secret-level access for a dedicated runtime service account. A private container
+image was built successfully in Google Cloud and stored in Artifact Registry.
+
+On September 4, 2026 the private hosted release was completed. Four further defects that only appear
+in the real Cloud Run environment were found and fixed (Section 9, items 13–16), and revision
+`watchtower-00006-gz8` is now live, private, and fully verified end to end: authenticated health and
+readiness, a 12-title production dashboard backed by ClickHouse Cloud, rejection of unauthenticated
+control requests, one controlled incident investigated through the official ClickHouse MCP server by
+four real Gemini 2.5 Flash agents, quantified impact, and a persisted human approval.
+
+No resource, IAM policy, service, credential, deployment, or billing setting in the separate Verity
+project was changed.
+
+## 2. Product objective
+
+Streaming operations teams often see a metric change before they understand its cause or financial
+importance. WatchTower converts that fragmented workflow into one governed investigation:
+
+1. Synthetic streaming events arrive in ClickHouse.
+2. Deterministic rules detect a view collapse, buffering spike, or ad-delivery failure.
+3. The official ClickHouse MCP server retrieves bounded, read-only evidence.
+4. Root cause and impact modules create an auditable technical and commercial assessment.
+5. Four specialized Gemini agents produce a structured incident brief and recommended action.
+6. A human operator approves or dismisses the recommendation.
+7. The decision and agent trace are persisted for review.
+
+The project uses an original fictional catalog so the demonstration has no dependency on copyrighted
+movie artwork, external entertainment APIs, or another project’s data.
+
+## 3. System architecture
+
+| Layer | Implementation | Responsibility |
 |---|---|---|
-| Original implementation | Complete | New standalone workspace; no Verity source or resource used |
-| Fictional catalog | Complete | 12 original titles and code-native gradient covers |
-| Generator and injection | Complete | Real ClickHouse writes and authenticated control endpoint |
-| Detection and impact | Complete | Deterministic thresholds and auditable USD/viewer-hour method |
-| Official ClickHouse MCP | Complete locally and in Cloud | Official package over stdio, persistent session, read-only user and middleware |
-| Four-agent ADK workflow | Complete | `SequentialAgent` with Detector, Root-Cause, Impact, and Action agents |
-| Human approval | Complete | Pending-by-default approve/dismiss flow; no execution tool exists |
-| Web product | Complete locally | Responsive FastAPI dashboard on `127.0.0.1:8080` |
-| Automated verification | Complete | 22 unit/API/policy tests plus 1 real ClickHouse/MCP integration test |
-| Google budget guardrail | Complete | $80 gross-cost budget with $25/$50/$75/$80 alerts |
-| Google runtime foundation | Complete | Five required APIs enabled; dedicated Vertex AI runtime identity created |
-| Vertex AI Gemini | Complete | Controlled Gemini 2.5 Flash run completed four real ADK stages in `watchtower-507216` |
-| ClickHouse Cloud | Complete | TLS schema, catalog, scoped app user, scoped MCP user, and Cloud pipeline verified |
-| Cloud Run URL | Blocked | Secret Manager transfer requires explicit authorization; public release remains gated |
-| GitHub repository | Private and pushed | `ZiyadAzzaz/watchtower-agentic-cinema`; public release requires approval |
-| Devpost/video | Prepared | Copy and three-minute runbook ready; recording/submission remains a human action |
+| Product interface | FastAPI and dependency-free HTML/CSS/JavaScript | Live dashboard, incident timeline, simulation controls, approval UI |
+| Event generation | Python synthetic generator | Time-of-day traffic across 12 titles and five regions |
+| Operational store | ClickHouse Cloud | Telemetry, incidents, decisions, and analytical aggregation |
+| Detection | Deterministic Python rules | Explainable view, buffering, and advertising thresholds |
+| Evidence access | Official `mcp-clickhouse` over stdio | Read-only, bounded investigation queries |
+| Defense in depth | WatchTower MCP middleware | Rejects mutations, comments, multiple statements, unknown tables, and unbounded output |
+| Agent orchestration | Google ADK `SequentialAgent` | Detector, Root-Cause, Impact, and Action stages |
+| Model provider | Gemini 2.5 Flash through Vertex AI | Structured reasoning after deterministic event gates |
+| Governance | Versioned incident decision workflow | Pending-by-default approve/dismiss boundary |
+| Runtime | Private Google Cloud Run | Scale-to-zero hosted application |
+| Secrets | Google Secret Manager | Application DB password, MCP DB password, operator token |
+| Image storage/build | Artifact Registry and Cloud Build | Private reproducible application container |
 
-## What was built
+## 4. Implementation delivered
 
-- A FastAPI web service and polished dependency-free operator dashboard.
-- Synthetic time-of-day telemetry for five regions and 12 fictional titles.
-- Three controllable incidents: view collapse, buffering spike, and ad-delivery failure.
-- Rolling ClickHouse baseline/current-window analysis with fixed, bounded SQL.
-- Official `mcp-clickhouse` calls at runtime using a dedicated `SELECT`-only identity.
-- A second MCP middleware boundary that rejects mutations, comments, multiple statements, unknown
-  tables, and unbounded output.
-- A real Google ADK four-agent `SequentialAgent`; Gemini is invoked only after deterministic gates.
-- Quantified affected sessions, lost viewer-hours, revenue impact, severity, and methodology.
-- Versioned incident state and a visible human decision boundary.
-- Production validation, Docker packaging, Cloud Run scripts, CI, MIT license, security and demo
-  documentation.
+### 4.1 Data and demonstration
 
-## Verification results
+- Twelve original titles with code-native gradient artwork.
+- Five operating regions and multiple CDN nodes.
+- Realistic time-of-day telemetry and historical baseline seeding.
+- Three controllable incident types: view drop, buffer spike, and ad failure.
+- Unique test scopes so repeated integration runs do not delete or corrupt shared data.
+
+### 4.2 Detection and business impact
+
+- Fixed, auditable anomaly thresholds rather than opaque model-only detection.
+- Rolling current and baseline windows implemented with bounded ClickHouse SQL.
+- Root-cause ranking based on real queried CDN and regional evidence.
+- Affected sessions, lost viewer-hours, estimated revenue loss, severity, and methodology.
+- Duplicate-open-incident protection.
+
+### 4.3 Agentic workflow
+
+- A real four-stage Google ADK sequential workflow.
+- Gemini is event-gated and is not invoked for every routine telemetry tick.
+- Each agent receives MCP-derived evidence and produces a traceable stage result.
+- Production fails closed if Vertex AI is unavailable; it does not silently present a fallback as a
+  real model response.
+- Explicit runtime environment selection locks production to `watchtower-507216`.
+
+### 4.4 Human governance and security
+
+- All incidents default to `pending_approval`.
+- Approve and dismiss actions require the operator token in production.
+- Decisions are versioned and persisted.
+- There is no infrastructure-remediation or destructive action tool.
+- ClickHouse application and MCP identities are independent and least-privileged.
+- MCP identity has `SELECT` access only.
+- Application identity has only the `SELECT` and `INSERT` access required by WatchTower.
+- Security headers include CSP, clickjacking protection, MIME protection, referrer restrictions,
+  and browser capability restrictions.
+
+## 5. Cloud resources created in WatchTower
+
+All listed resources belong to `watchtower-507216`; project number `283557821298`.
+
+| Resource | State |
+|---|---|
+| Vertex AI API | Enabled |
+| Artifact Registry API | Enabled |
+| Cloud Build API | Enabled |
+| Cloud Run API | Enabled |
+| Secret Manager API | Enabled |
+| Runtime service account | `watchtower-runtime@watchtower-507216.iam.gserviceaccount.com` |
+| Runtime model permission | `roles/aiplatform.user` |
+| Artifact Registry repository | Private `watchtower` repository in `us-central1` |
+| Secret: application DB password | `watchtower-clickhouse-app-password` |
+| Secret: MCP DB password | `watchtower-clickhouse-mcp-password` |
+| Secret: operator token | `watchtower-admin-token` |
+| Secret access | Granted individually to the runtime service account only |
+| First container image | `watchtower:3f6d79a` |
+| First image digest | `sha256:2694a2a56f63923e716d33792c39c2fd8ca8c6830bf7b167ee9351919a56f25b` |
+| Cloud Build ID | `9266dfe2-8ff7-41de-b75a-cf913ffb784b` — successful |
+| **Released container image** | `watchtower:baseline-fix-20260904` |
+| **Released image digest** | `sha256:e10cea5c563846334b4cc218af358c972f8a8cb0deb85e905ff7996ed0ab5001` (build `ef43a82e-57ea-4898-b3ec-708cbadb9707`) |
+| **Cloud Run service** | Private `watchtower`; ready revision `watchtower-00006-gz8` serving 100% of traffic |
+| **Private service URL** | `https://watchtower-283557821298.us-central1.run.app` (identity token required) |
+
+The build upload was inspected before submission: 35 files totaling approximately 139 KB were
+included. `.env`, Git metadata, tests, internal briefs, and local caches were excluded. No secret
+value was displayed or included in the container context.
+
+## 6. ClickHouse Cloud state
+
+- TLS endpoint configured in `us-central1`.
+- `watchtower` database, schema, tables, and fictional catalog initialized.
+- Scoped `watchtower_app` ingestion identity created.
+- Scoped `watchtower_mcp` read-only identity created.
+- Local `.env` contains the scoped identities rather than the database administrator identity.
+- Bootstrap is disabled for production runtime.
+- End-to-end cloud verification passed for ingestion, official MCP reads, detection, root-cause
+  evidence, impact, four agent stages, incident persistence, approval persistence, and destructive
+  query rejection.
+
+Secret values are intentionally absent from this report.
+
+## 7. Google Cloud isolation and cost safety
+
+### 7.1 Strict project isolation
+
+- Active gcloud configuration: `watchtower`.
+- Active CLI project: `watchtower-507216`.
+- ADC quota project: `watchtower-507216`.
+- Runtime code explicitly sets the WatchTower project, location, and Vertex AI mode.
+- Deployment scripts contain the fixed WatchTower project ID and validate it before mutation.
+- The older `default` gcloud configuration for `verity-506800` remains saved but inactive.
+- No Verity cloud resource or billing setting was touched.
+
+### 7.2 Google Cloud budget guardrail
+
+The project budget is `WatchTower hard guardrail - 80 USD`, budget ID
+`a6e67826-68d2-4f3c-9dd1-c6865afde710`. It uses gross spend with credits excluded and alerts at:
+
+- $25
+- $50
+- $75
+- $80
+
+No payment method, billing-account link, or unrelated billing configuration was changed. Google
+Cloud budgets send notifications; they are not automatic hard spending caps. Cloud Run is therefore
+configured with zero minimum instances, one maximum instance, one CPU, 512 MiB memory, concurrency
+20, and a 120-second request timeout. Work must pause for review at the defined checkpoints.
+
+ClickHouse Cloud cost checkpoints of $100, $200, and $300 must be configured manually in the
+ClickHouse console. Database credentials cannot configure account-level billing alerts.
+
+## 8. Verification evidence
 
 | Check | Result |
 |---|---|
 | Ruff formatting | Pass |
 | Ruff lint | Pass |
-| Unit/API/policy suite | 22 passed, 1 integration deselected |
-| Coverage | 71% overall; critical deterministic modules 84–100% |
-| Real ClickHouse + official MCP | 1 passed |
-| Real ClickHouse Cloud pipeline | Pass; TLS, scoped users, official MCP, incident and decision verified |
-| Real Vertex AI Gemini | Pass; Gemini 2.5 Flash, four ADK stages and MCP evidence tools |
+| Unit/API/policy suite after the September 4 corrections | **26 passed, 1 integration deselected** |
+| Coverage after the September 4 corrections | **68% overall**; critical deterministic modules 82–100% |
+| Production startup regression | Pass; health listens while readiness remains closed |
+| Real local ClickHouse and official MCP integration | Pass |
+| Real ClickHouse Cloud pipeline | Pass |
+| Real Vertex AI Gemini 2.5 Flash execution | Pass |
+| Four Google ADK stages | Pass |
 | Destructive MCP query | Rejected as required |
 | Docker image build | Pass |
-| Container health | App running; ClickHouse healthy |
-| Live dashboard API | Operational, 12 titles, real timeline data |
-| Missing admin token | HTTP 401 |
-| Authenticated anomaly workflow | 1 incident created, 4 agent trace steps |
+| Cloud Build and private Artifact Registry push | Pass |
+| Authentication without operator token | HTTP 401 |
+| Controlled anomaly workflow | Incident and four-stage trace created |
 | Human decision | Pending incident changed to approved; no action executed |
+| Latest pushed GitHub CI before lifecycle correction | Pass — run `33545631480` |
+| **Hosted `/health` and `/api/healthz` (identity token)** | **Pass — `{"status":"ok","service":"watchtower"}`** |
+| **Hosted `/readyz`** | **Pass — `operational`** |
+| **Hosted `/api/dashboard`** | **Pass — 12 fictional titles, `production`, `operational`** |
+| **Hosted control request without operator token** | **Rejected — HTTP 401** |
+| **Hosted controlled incident** | **Pass — `274e27ce-9839-40cd-8eb7-68afd12593b3`, buffer spike, +251.5% vs baseline, confidence 0.99** |
+| **Hosted MCP evidence** | **Pass — 3 bounded evidence rows; cause isolated to CDN node `me-edge-02`** |
+| **Hosted four-stage Gemini/ADK trace** | **Pass — Detector → Root-Cause → Impact Estimator → Action Drafter, ~25 s total, `ai_provider: Gemini on Vertex AI`** |
+| **Hosted quantified impact** | **Pass — 52 affected sessions, 35.5 lost viewer-hours, $6.90, severity `low`** |
+| **Hosted human approval** | **Pass — `pending_approval` → `approved`, persisted; no action executed** |
+| **Hosted duplicate suppression** | **Pass — ticks 2–4 created no further incident** |
+| **Hosted privacy checkpoint** | **Pass — Cloud Run IAM policy contains no bindings; `allUsers`/`allAuthenticatedUsers` absent** |
+| **Hosted cost limits** | **Pass — minScale 0, maxScale 1, concurrency 20, 1 vCPU, 512 MiB, 120 s timeout** |
 
-## Problems found and resolutions
+All corrections above are committed and built. The evidence in this table was produced against the
+live private Cloud Run revision `watchtower-00006-gz8`, not against a local process.
 
-1. **ClickHouse aggregate aliases conflicted with source column names.** ClickHouse expanded an alias
-   inside another aggregate and rejected the dashboard query. Output aliases were made unambiguous
-   and the real container endpoint was re-tested successfully.
-2. **Official MCP result envelopes varied.** The parser now handles text envelopes, structured
-   content, and column-plus-positional-row responses.
-3. **Starting one MCP process per query was slow and wasteful.** The client now maintains one
-   lifecycle-managed stdio session with serialized access and clean application shutdown.
-4. **Repeat integration runs accumulated live test telemetry.** The integration test now writes a
-   unique test scope per run, proving behavior without deleting shared local data.
-5. **Local Docker mutation endpoints saw a bridge address, not loopback.** The local stack now uses
-   an explicit demo operator token while remaining bound only to `127.0.0.1`.
-6. **GitHub CLI credentials were invalid.** Device re-authentication succeeded. The verified `main`
-   branch is backed up in a new private repository; visibility remains gated for release review.
-7. **Local ADC quota attribution referenced the prior project.** No Gemini request was made in that
-   state. The local ADC quota project was changed to `watchtower-507216`; explicit runtime project
-   configuration now overrides unrelated `gcloud` defaults.
-8. **ClickHouse Cloud initially rejected a generated password.** The generator now guarantees the
-   Cloud password-policy character classes while retaining a strong random component.
-9. **A transient ClickHouse Cloud wake timeout interrupted one diagnostic.** The fail-closed test was
-   retried after wake-up and the complete real Gemini/MCP path passed.
+## 9. Problems discovered and resolutions
 
-## Cost and cloud safety
+1. **ClickHouse aggregate aliases conflicted with source column names.** Output aliases were made
+   unambiguous and the real query was retested.
+2. **Official MCP response envelopes varied.** The parser now accepts text, structured content, and
+   column-plus-positional-row representations.
+3. **One MCP process per query was inefficient.** The client now maintains a serialized persistent
+   stdio session and closes it during application shutdown.
+4. **Integration runs accumulated telemetry.** Each run now uses a unique scope without deleting
+   shared data.
+5. **Docker bridge traffic was not loopback.** Local mutations use an explicit demonstration token
+   while ports remain bound to `127.0.0.1`.
+6. **Initial GitHub CLI credentials were invalid.** Device authentication was renewed and the source
+   was pushed to a new private repository.
+7. **ADC previously attributed quota to another local project.** No Gemini request was sent in that
+   state. ADC and the active gcloud configuration now use `watchtower-507216`, and runtime selection
+   is explicit.
+8. **ClickHouse rejected an initially generated password.** Generation now guarantees required
+   character classes while preserving strong randomness.
+9. **A sleeping ClickHouse Cloud service caused one transient timeout.** Fail-closed verification was
+   retried after wake-up and passed.
+10. **Cloud Build context lacked an explicit Google ignore file.** `.gcloudignore` was added and the
+    exact upload list was verified before the build.
+11. **The first Cloud Run revision did not listen before remote initialization completed.** The
+    production lifespan now starts initialization asynchronously, exposes only lightweight health
+    during startup, and gates readiness/data/control endpoints until success. A regression test was
+    added and the 24-test suite passes.
+12. **Cloud approval allowance was exhausted after the first revision.** The platform rejected the
+    log request and explicitly prohibited workarounds. No indirect access was attempted. Access was
+    restored on September 4, 2026 and the queued sequence was executed in full.
+13. **The ClickHouse client connected while the application object was being constructed.** The
+    asynchronous-initialization fix in item 11 was not sufficient: `ClickHouseRepository.__init__`
+    called `clickhouse_connect.get_client(...)`, which performs a real TLS handshake and a
+    `SELECT version(), timezone()` round trip. That call ran synchronously inside the FastAPI
+    lifespan, before the background task could start, so a sleeping ClickHouse Cloud service still
+    blocked the event loop until the read timed out and the container exited with status 3. The
+    connection is now created lazily on first use behind a thread lock, no network call occurs
+    during construction, and the production initialization task retries a waking datastore six
+    times with exponential backoff. A regression test asserts that constructing the repository
+    never contacts ClickHouse.
+14. **Cloud Run's frontend reserves the exact path `/healthz`.** Requests to `/healthz` were
+    answered by Google with a generic HTML 404 and never reached the container; the response
+    carried none of WatchTower's security headers, while `/healthz/` returned the application's own
+    307 redirect and `/nope` returned the application's own 404. The same handler is now also
+    published at `/health` and `/api/healthz`, and readiness at `/ready` and `/api/readyz`. Cloud
+    Run's startup probe is a TCP check and was never affected.
+15. **The MCP stdio session was created in one asyncio task and reused from another.** The official
+    MCP stdio client opens an anyio task group, and anyio requires the task that enters a cancel
+    scope to be the task that exits it. Because the persistent session was opened lazily inside
+    whichever HTTP request arrived first, the next request raised
+    `RuntimeError: Attempted to exit a cancel scope that isn't the current task's current cancel
+    scope`, and every request after that raised `ClosedResourceError`. Every hosted detection tick
+    therefore returned HTTP 500. The client now owns a dedicated long-lived session task that
+    enters and exits the exit stack itself and serves queries from an `asyncio.Queue`; this
+    preserves the previous serialized access, discards a broken session so the next call rebuilds
+    it, and fails any queued request cleanly on shutdown. Verified against real ClickHouse Cloud by
+    issuing three queries from three independent tasks through one persistent session.
+16. **Seeding was gated on total row count, so the detection baseline went stale.** Detection
+    compares a five-minute live window against the preceding sixty-minute baseline window, but
+    history was only seeded when the table held fewer than 1,200 rows in total. Telemetry written
+    days earlier satisfied that check while leaving both windows empty, so the hosted service
+    ingested events and reported healthy yet could never raise an incident. Seeding is now driven
+    by the number of rows inside the baseline window, and a detection tick re-seeds a thin baseline
+    before generating, so the service self-heals after any idle gap. A regression test stores
+    three-day-old history and asserts it is re-seeded once and not re-seeded again.
 
-The project-scoped Google Cloud budget is named `WatchTower hard guardrail - 80 USD`, budget ID
-`a6e67826-68d2-4f3c-9dd1-c6865afde710`. It covers project number `283557821298`, excludes credits,
-starts August 31, 2026, and alerts on actual spend at 31.25%, 62.5%, 93.75%, and 100%—exactly $25,
-$50, $75, and $80.
+## 10. Current status matrix
 
-No payment method, billing-account link, or unrelated budget was changed. Google budget alerts are
-notifications, not automatic spending caps. Cloud Run is therefore additionally constrained to
-scale-to-zero and one maximum instance. No billing-disabling automation was created because that
-would violate the instruction not to change billing and can damage unrelated project services.
+| Area | Status |
+|---|---|
+| Core application | Complete |
+| Dashboard and controls | Complete |
+| Detection and impact | Complete |
+| Official ClickHouse MCP | Complete |
+| Four-agent ADK/Gemini workflow | Complete |
+| Human approval boundary | Complete |
+| ClickHouse Cloud | Complete and verified |
+| Vertex AI | Complete and verified |
+| Secret Manager | Complete |
+| Runtime least-privilege IAM | Complete |
+| Private container build | Complete |
+| Cloud Run lifecycle correction | Complete and verified in production |
+| Corrected private Cloud Run revision | **Complete — `watchtower-00006-gz8` ready and serving** |
+| Hosted end-to-end verification | **Complete — all eleven hosted checks pass** |
+| GitHub | Private; September 4 corrections committed and pushed |
+| Public service/repository | Not authorized and not published |
+| Demo video and Devpost | Prepared materials exist; recording/submission pending |
 
-The local Docker services incur no Google Cloud spend. Before provisioning ClickHouse Cloud, redeem
-the official credit, select the smallest viable service, and configure its $100/$200/$300 monitoring
-checkpoints.
+## 11. Execution record and remaining sequence
 
-## Immediate human actions
+Sections 1–12 of `docs/POST_ACCESS_RUNBOOK.md` were executed in order on September 4, 2026. Every
+numbered step completed, including the four corrections in Section 9 items 13–16 that were required
+to make the hosted revision behave correctly. Four Cloud Build runs and four Cloud Run revisions were
+consumed reaching the working release; only `watchtower-00006-gz8` serves traffic.
 
-1. Submit the Google hackathon credit request form immediately if it is still open:
-   <https://forms.gle/XPe837tzogh8L5sX6>. Form submission cannot be completed or verified by this
-   workspace agent.
-2. Configure ClickHouse Cloud spend checkpoints at $100, $200, and $300 in its console; never add a
-   personal payment method.
-3. Explicitly authorize transferring the three generated runtime secrets from local `.env` to
-   Secret Manager in `watchtower-507216`.
-4. Verify the private Cloud Run deployment, then approve public repository and service access.
-5. Record the three-minute demo, upload it publicly, and complete Devpost before the official
-   September 9 deadline.
+What remains, in order:
 
-## Release plan
+1. Record the current Google Cloud and ClickHouse Cloud console spend totals (owner action).
+2. Obtain the owner's explicit approval for public Cloud Run invocation and public repository
+   visibility — Section 13 of the runbook.
+3. Record the three-minute demo using `docs/DEMO_SCRIPT.md`.
+4. Submit on Devpost using `docs/DEVPOST_SUBMISSION.md`.
+5. Run a final judge-mode smoke test from a logged-out browser.
 
-The remaining sequence is dependency-driven: prepare ClickHouse Cloud and secrets, run the guarded
-Google Cloud setup, build and deploy a private Cloud Run revision, run the same end-to-end tests on
-the hosted URL, review current spend, obtain explicit public-release approval, publish the service
-and GitHub repository, record the demo, and submit Devpost. At $25, $50, or $75 Google spend—or
-$100/$200 ClickHouse spend—work pauses for review. At the hard caps, all new spending work stops.
+Public access remains a separate release checkpoint. The service and repository must not be made
+public without explicit approval.
 
-## Competition assessment
+## 12. Judge-readiness plan
 
-The implementation is designed to score strongly on technical depth, product coherence, credible
-business impact, and originality. No engineering process can guarantee first place; the remaining
-hosted proof, concise demo story, and complete submission are essential to make the work judgeable.
+After private verification, the final competition sequence is:
+
+1. Approve public Cloud Run invocation and repository visibility separately.
+2. Execute the three-minute demo runbook with a clean incident narrative.
+3. Record the dashboard, anomaly injection, MCP evidence, four agent stages, quantified impact, and
+   human approval boundary.
+4. Upload the video publicly.
+5. Complete Devpost with the prepared architecture, technical story, source, and live URL.
+6. Perform a final judge-mode smoke test from a logged-out browser.
+
+The implementation is designed to compete strongly on technical depth, credible ClickHouse use,
+agentic orchestration, safety, originality, and product coherence. No engineering process can
+guarantee first place, but completing the hosted proof and presenting the human-governed story
+clearly will make the work fully judgeable.
+
+## 13. Final professional assessment
+
+WatchTower is no longer a prototype concept: its core product, data platform, MCP integration,
+deterministic intelligence, Gemini agents, governance model, cloud secrets, IAM, and container build
+have all been implemented and tested. The remaining work is operational rather than architectural:
+publish the corrected private revision, verify it end to end, then execute the separately authorized
+public release and competition submission.
+
+The project remains safely isolated from Verity, secret values remain protected, production access
+remains private, and cloud costs are constrained and monitored.
+
+## 14. September 2 follow-up readiness audit
+
+### Execution-platform restriction and contest runway
+
+The blocked approval is internal to the Codex/ChatGPT execution environment. It is not a Google
+Cloud quota, ClickHouse policy, organization restriction, or project IAM failure. The automatic
+approval reviewer reported that its execution allowance was exhausted and offered restoration by
+plan upgrade, purchasing additional Codex credits, or waiting for the displayed reset.
+
+The reset was displayed as **September 7, 2026 at 06:52** inside a session configured for
+`Africa/Cairo` (UTC+3). The best-supported interpretation is therefore Cairo local time. The contest
+deadline of September 9, 2026 at 2:00 PM Pacific Daylight Time is September 10 at 00:00 Cairo time,
+leaving **65 hours 8 minutes** between the displayed reset and submission deadline. Because public
+account documentation does not expose the timezone of this account-specific timestamp, this is
+recorded as a high-confidence interpretation rather than an externally guaranteed conversion.
+
+### Google-only AI audit
+
+The shipped runtime and dependency manifests were scanned for OpenAI, Anthropic, Cohere, Mistral,
+Groq, Bedrock/Boto3, Hugging Face Transformers, LangChain, LlamaIndex, CrewAI, AutoGen, and Semantic
+Kernel model/framework imports or packages. The result is **zero non-Google AI dependencies or
+imports in the shipped runtime**. The only forbidden vendor strings found in the repository are
+deliberate assertions in `tests/test_policy.py`; that passing test prevents those imports from being
+added to `watchtower/`. Runtime AI imports are exclusively Google ADK and Google Gen AI.
+
+### Actual spend evidence
+
+- **Google Cloud:** no budget alert has been reported. The only defensible observed bound is below
+  the first $25 gross-cost checkpoint at the last observable check; an exact accrued amount is not
+  available from repository data or the budget resource.
+- **ClickHouse Cloud:** no owner-console total has been supplied. Database credentials cannot read
+  organization billing, so the current exact amount is unknown.
+
+Neither value is estimated or invented. The owner must record both console totals before public
+release. The standalone ClickHouse owner action is in `docs/CLICKHOUSE_BILLING_ALERTS.md`.
+
+### Preparation completed while blocked
+
+- Devpost submission text expanded into paste-ready sections with only public URL placeholders.
+- Demo runbook reconciled with the current UI, persisted incident history, and model latency.
+- README rewritten for reproducible Docker and real-Vertex host workflows.
+- Standalone $100/$200/$300 ClickHouse billing checkpoint instructions added.
+- Exact private rebuild, deployment, authenticated test, incident, policy, Git, and CI command
+  sequence added in `docs/POST_ACCESS_RUNBOOK.md`.
+- Public release remains gated on originality/media/AI re-audit, spend review, and explicit owner
+  approval.
+
+## 15. September 4 private release record
+
+### Sequence executed
+
+| Runbook section | Result |
+|---|---|
+| 1. Lock and verify the target | Configuration `watchtower`, project `watchtower-507216`, ADC quota project set |
+| 2. Confirm the first-revision diagnosis | `HealthCheckContainerError` on `watchtower-00001-8nc`; container never listened on `PORT=8080` |
+| 3. Re-run local gates | Ruff format and lint clean; 26 passed, 1 integration deselected |
+| 4. Verify the secret-free build context | 35 files, ~149 KB; no `.env`, credentials, briefs, or caches |
+| 5. Build the corrected private image | Build `ef43a82e-57ea-4898-b3ec-708cbadb9707`, digest `sha256:e10cea5c…` |
+| 6. Deploy privately with fixed limits | Revision `watchtower-00006-gz8` ready, 100% of traffic, `--no-allow-unauthenticated` |
+| 7. Authenticated health and readiness | `/health` and `/api/healthz` return `ok`; `/readyz` returns `operational` |
+| 8. Dashboard and authentication rejection | 12 fictional titles, `production`/`operational`; token-less control request rejected 401 |
+| 9. One controlled hosted incident | Buffer spike armed for `aurora-drift` / MENA; incident created on the first tick |
+| 10. Evidence, agents, persistence, approval | 3 MCP evidence rows, 4 Gemini stages, quantified impact, approval persisted |
+| 11. Private access and cost limits | No IAM bindings; minScale 0, maxScale 1, concurrency 20, 1 vCPU, 512 MiB, 120 s |
+| 12. Documentation, commit, push, CI | This section; committed and pushed to the private repository |
+
+### Hosted incident evidence
+
+- **Incident:** `274e27ce-9839-40cd-8eb7-68afd12593b3`
+- **Anomaly:** buffer spike on the fictional title `aurora-drift` in MENA
+- **Observed vs baseline:** 0.185 vs 0.053 buffer-event rate — **+251.5%**, confidence **0.99**
+- **Root cause from bounded MCP evidence:** degradation concentrated on CDN node `me-edge-02`
+- **Impact:** 52 affected sessions, 35.5 lost viewer-hours, **$6.90**, severity `low`
+- **Agent trace:** Detector → Root-Cause → Impact Estimator → Action Drafter, four stages, ~25 s
+- **Model path:** `ai_provider` reported `Gemini on Vertex AI` after the run
+- **Decision:** `pending_approval` → `approved` with an operator note; **no action was executed**
+
+### Cost position
+
+- **Google Cloud:** the `WatchTower hard guardrail - 80 USD` budget remains configured with alerts at
+  31%, 63%, 94%, and 100% of $80 — that is $25, $50, $75, and $80. **No budget alert has fired.**
+  The exact accrued amount is not readable from the budget resource and must be read by the owner in
+  the Cloud Billing console. The pre-existing `verity alert` budget on the same billing account was
+  listed while enumerating budgets and was **not modified**; no Verity resource was touched.
+- **ClickHouse Cloud:** database credentials cannot read organization billing. The $100 / $200 / $300
+  checkpoints are an owner action in the ClickHouse console — see
+  `docs/CLICKHOUSE_BILLING_ALERTS.md`. No total is recorded here because none was observed.
+
+Neither figure is estimated. Both console totals must be recorded by the owner before public release.
+
+### Google-only AI position, re-confirmed
+
+`tests/test_policy.py` continues to pass. The shipped runtime imports `google.adk` and `google.genai`
+only. No OpenAI, Anthropic, Cohere, Mistral, Groq, Bedrock, Hugging Face Transformers, LangChain,
+LlamaIndex, CrewAI, AutoGen, or Semantic Kernel package or import exists in `watchtower/`,
+`requirements.txt`, or `pyproject.toml`. The corrections made on September 4 touched only lifecycle,
+transport, and seeding logic; no dependency was added.
+
+### Standing gate
+
+The Cloud Run service and the GitHub repository are **private**. Section 13 of the runbook is not
+satisfied and must not be actioned without the project owner's explicit approval.
