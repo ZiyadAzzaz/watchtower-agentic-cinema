@@ -1,34 +1,35 @@
 #!/bin/sh
 # WatchTower authorship guard.
 #
-# This project is submitted as the sole original work of Ziyad Azzaz. No commit
-# may credit a tool or assistant as an author, contributor, or generator of the
-# work. Offending trailers are stripped automatically rather than rejected, so a
-# commit is never lost to this check.
+# This project is submitted as the sole original work of Ziyad Azzaz, so no
+# commit may credit a tool or assistant as an author, contributor, or generator
+# of the work. Offending lines are stripped automatically rather than rejected,
+# so a commit is never lost to this check.
 #
-# Legitimate technology references -- Google ADK, Gemini, Vertex AI,
-# mcp-clickhouse and the like -- are untouched: this only matches attribution
-# trailers and generation claims.
+# The patterns below match attribution trailers and generation claims by their
+# shape, not by vendor name. Genuine technology references -- Google ADK,
+# Gemini, Vertex AI, mcp-clickhouse and the like -- are never touched, because
+# they never appear in these forms.
 
 msg_file="$1"
 [ -f "$msg_file" ] || exit 0
 
 before=$(md5sum < "$msg_file")
 
-# Drop attribution trailers and generation claims, then trim trailing blanks.
 awk '
-  tolower($0) ~ /^[[:space:]]*(co-authored-by|co-committed-by)[[:space:]]*:/ { next }
-  tolower($0) ~ /generated (with|by) .*(claude|codex|chatgpt|copilot|gpt|llm|ai\b)/ { next }
-  tolower($0) ~ /^[[:space:]]*🤖/ { next }
-  tolower($0) ~ /ai-generated/ { next }
-  tolower($0) ~ /claude\.com\/claude-code/ { next }
+  # Any co-author trailer: this is a solo repository.
+  tolower($0) ~ /^[[:space:]]*co-(authored|committed)-by[[:space:]]*:/ { next }
+  # Generation claims, e.g. "Generated with <tool>".
+  tolower($0) ~ /^[[:space:]]*.{0,4}generated (with|by)[[:space:]]/  { next }
+  tolower($0) ~ /ai-generated/                                      { next }
+  # A line that is only the robot emoji plus a credit.
+  /^[[:space:]]*\xf0\x9f\xa4\x96/                                    { next }
   { print }
 ' "$msg_file" | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > "$msg_file.tmp"
 
 mv "$msg_file.tmp" "$msg_file"
 
-after=$(md5sum < "$msg_file")
-if [ "$before" != "$after" ]; then
+if [ "$before" != "$(md5sum < "$msg_file")" ]; then
   echo "authorship guard: removed a tool-attribution line from the commit message." >&2
 fi
 
